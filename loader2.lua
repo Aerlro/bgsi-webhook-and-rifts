@@ -56,7 +56,6 @@ local function formatChance(chanceStr)
     if not num or num <= 0 then return chanceStr end
 
     local oneIn = 100 / num
-    local decimalChance = num / 100
 
     local function approxNumber(n)
         if n >= 1e6 then
@@ -68,11 +67,10 @@ local function formatChance(chanceStr)
         end
     end
 
-    if oneIn >= 1e6 and oneIn <= 1e8 then
-        local realPercent = num
-        return string.format("%.9f%% (1 in %s)", realPercent, approxNumber(oneIn))
+    if oneIn <= 100_000_000 then
+        return string.format("%.6f%%%% (1 in %s)", num, approxNumber(oneIn)) -- %% = un singur %
     else
-        return string.format("%.3f%% (1 in %s)", num, approxNumber(oneIn))
+        return string.format("%.0e%%%% (1 in %s)", num, approxNumber(oneIn)) -- afiseaza e-notation + %
     end
 end
 
