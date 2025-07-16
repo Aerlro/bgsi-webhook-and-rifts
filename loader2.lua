@@ -67,11 +67,20 @@ local function formatChance(chanceStr)
         end
     end
 
+    local percentStr
     if oneIn <= 100_000_000 then
-        return string.format("%.6f%%%% (1 in %s)", num, approxNumber(oneIn)) -- %% = un singur %
+        if num >= 1 then
+            percentStr = string.format("%.2f%%", num)              -- ex: 12.50%
+        elseif num >= 0.01 then
+            percentStr = string.format("%.3f%%", num)              -- ex: 0.125%
+        else
+            percentStr = string.format("%.6f%%", num)              -- ex: 0.000006%
+        end
     else
-        return string.format("%.0e%%%% (1 in %s)", num, approxNumber(oneIn)) -- afiseaza e-notation + %
+        percentStr = string.format("%.0e", num) .. "%%"            -- ex: 3e-08%
     end
+
+    return string.format("%s (1 in %s)", percentStr, approxNumber(oneIn))
 end
 
 local function formatPlaytime()
