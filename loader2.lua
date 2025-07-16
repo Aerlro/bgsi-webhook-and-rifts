@@ -67,17 +67,18 @@ local function formatChance(chanceStr)
         end
     end
 
-    local percentStr
+    local percentStr = ""
     if oneIn <= 100_000_000 then
+        -- Aproximează inteligent
         if num >= 1 then
-            percentStr = string.format("%.2f%%", num)              -- ex: 12.50%
+            percentStr = tostring(math.floor(num * 100 + 0.5) / 100) .. "%" -- rotunjire 2 zecimale
         elseif num >= 0.01 then
-            percentStr = string.format("%.3f%%", num)              -- ex: 0.125%
+            percentStr = string.format("%.3f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
         else
-            percentStr = string.format("%.6f%%", num)              -- ex: 0.000006%
+            percentStr = string.format("%.6f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
         end
     else
-        percentStr = string.format("%.0e", num) .. "%%"            -- ex: 3e-08%
+        percentStr = string.format("%.0e", num) .. "%"
     end
 
     return string.format("%s (1 in %s)", percentStr, approxNumber(oneIn))
