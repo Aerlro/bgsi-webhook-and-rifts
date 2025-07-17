@@ -100,9 +100,17 @@ local function formatChance(chanceStr)
 
     local oneIn = 100 / num
     local function approxNumber(n)
-        if n >= 1e6 then return string.format("%.1fM", n / 1e6)
-        elseif n >= 1e3 then return string.format("%.1fK", n / 1e3)
-        else return tostring(math.floor(n)) end
+        if n >= 1e12 then
+            return string.format("%.2fT", n / 1e12)
+        elseif n >= 1e9 then
+            return string.format("%.2fB", n / 1e9)
+        elseif n >= 1e6 then
+            return string.format("%.2fM", n / 1e6)
+        elseif n >= 1e3 then
+            return string.format("%.1fK", n / 1e3)
+        else
+            return tostring(math.floor(n))
+        end
     end
 
     local percentStr = ""
@@ -183,6 +191,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 
     local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
+    local petFullName = (variant ~= "Normal" and (variant .. " ") or "") .. petName
 
     local description = string.format([[
 🎉・**Hatch Info**
@@ -221,13 +230,13 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local contentText = ""
 
     if rarity == "Infinity" then
-        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petName)
+        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petFullName)
         contentText = "@everyone"
     elseif rarity == "Secret" then
-        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petName)
+        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petFullName)
         contentText = "@everyone"
     else
-        titleText = string.format("||%s|| hatched a %s%s", playerName, variant ~= "Normal" and (variant .. " ") or "", petName)
+        titleText = string.format("||%s|| hatched a %s", playerName, petFullName)
     end
 
     http_request({
