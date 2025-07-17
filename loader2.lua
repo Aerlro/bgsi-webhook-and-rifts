@@ -1,36 +1,80 @@
-local HttpService = game:GetService("HttpService")  
-local Players = game:GetService("Players")  
-local rs = game:GetService("ReplicatedStorage")  
+local HttpService = game:GetService("HttpService")
+local Players = game:GetService("Players")
+local rs = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local petsModule = require(rs.Shared.Data.Pets)  
+local petsModule = require(rs.Shared.Data.Pets)
 
 local webhookUrl = "https://discord.com/api/webhooks/1391374778882986035/KzVd6EaiXL73gd2YN_FIIHt-d36SeaKONLqsjPGiTDin65p_KrRBLfwr7saQpbXUZCFI"
 
 local localPlayer = Players.LocalPlayer
 print("Roblox Name: " .. localPlayer.Name)
 
-local systemMessageEvent = rs:WaitForChild("Shared"):WaitForChild("Framework")  
-    :WaitForChild("Utilities"):WaitForChild("SendSystemMessage"):WaitForChild("RemoteEvent")  
+local systemMessageEvent = rs:WaitForChild("Shared"):WaitForChild("Framework")
+    :WaitForChild("Utilities"):WaitForChild("SendSystemMessage"):WaitForChild("RemoteEvent")
 
-local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("PlayerDataChanged")  
-local startTime = tick()  
-local coins, gems, tickets = "N/A", "N/A", "N/A"  
-local totalHatches = 0  
+local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("PlayerDataChanged")
+local startTime = tick()
+local coins, gems, tickets = "N/A", "N/A", "N/A"
+local totalHatches = 0
 
-if remote then  
-    remote.OnClientEvent:Connect(function(name, value)  
-        if name == "Coins" then coins = value  
-        elseif name == "Gems" then gems = value  
-        elseif name == "Tickets" then tickets = value  
-        elseif name == "EggsOpened" and typeof(value) == "table" then  
-            local count = 0  
-            for _, v in pairs(value) do  
-                count = count + (tonumber(v) or 0)  
-            end  
-            totalHatches = count  
-        end  
-    end)  
-end  
+-- Funcție pentru obținerea valorilor reale din GUI
+local function getCurrencyAmount(currencyName)
+	local success, result = pcall(function()
+		local label = localPlayer:WaitForChild("PlayerGui")
+			:WaitForChild("ScreenGui")
+			:WaitForChild("HUD")
+			:WaitForChild("Left")
+			:WaitForChild("Currency")
+			:WaitForChild(currencyName)
+			:WaitForChild("Frame")
+			:WaitForChild("Label")
+
+		local text = label.Text
+		local cleanText = text:gsub(",", "")
+		local number = tonumber(cleanText)
+		return number
+	end)
+
+	if success then
+		return result
+	else
+		return nil
+	end
+end
+
+-- Update din GUI dacă nu s-au primit prin Remote
+coroutine.wrap(function()
+    while true do
+        if coins == "N/A" then
+            local value = getCurrencyAmount("Coins")
+            if value then coins = value end
+        end
+        if gems == "N/A" then
+            local value = getCurrencyAmount("Gems")
+            if value then gems = value end
+        end
+        if tickets == "N/A" then
+            local value = getCurrencyAmount("Tickets")
+            if value then tickets = value end
+        end
+        wait(10)
+    end
+end)()
+
+if remote then
+    remote.OnClientEvent:Connect(function(name, value)
+        if name == "Coins" then coins = value
+        elseif name == "Gems" then gems = value
+        elseif name == "Tickets" then tickets = value
+        elseif name == "EggsOpened" and typeof(value) == "table" then
+            local count = 0
+            for _, v in pairs(value) do
+                count = count + (tonumber(v) or 0)
+            end
+            totalHatches = count
+        end
+    end)
+end
 
 local function abbreviateNumber(num)
     num = tonumber(num) or 0
@@ -52,26 +96,19 @@ end
 local function formatChance(chanceStr)
     local cleanStr = chanceStr:gsub("%%", "")
     local num = tonumber(cleanStr)
-
     if not num or num <= 0 then return chanceStr end
 
     local oneIn = 100 / num
-
     local function approxNumber(n)
-        if n >= 1e6 then
-            return string.format("%.1fM", n / 1e6)
-        elseif n >= 1e3 then
-            return string.format("%.1fK", n / 1e3)
-        else
-            return tostring(math.floor(n))
-        end
+        if n >= 1e6 then return string.format("%.1fM", n / 1e6)
+        elseif n >= 1e3 then return string.format("%.1fK", n / 1e3)
+        else return tostring(math.floor(n)) end
     end
 
     local percentStr = ""
     if oneIn <= 100_000_000 then
-        -- Aproximează inteligent
         if num >= 1 then
-            percentStr = tostring(math.floor(num * 100 + 0.5) / 100) .. "%" -- rotunjire 2 zecimale
+            percentStr = tostring(math.floor(num * 100 + 0.5) / 100) .. "%"
         elseif num >= 0.01 then
             percentStr = string.format("%.3f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
         else
@@ -86,7 +123,6 @@ end
 
 local function formatPlaytime()
     local elapsed = math.floor(tick() - startTime)
-    
     local days = math.floor(elapsed / 86400)
     local hours = math.floor((elapsed % 86400) / 3600)
     local minutes = math.floor((elapsed % 3600) / 60)
@@ -101,29 +137,26 @@ local function formatPlaytime()
     return table.concat(parts, " ")
 end
 
-local function getBoostedStats(stats, variant)  
-    local multiplier = 1  
-    if variant == "Shiny" then multiplier = 1.5  
-    elseif variant == "Mythic" then multiplier = 1.75  
-    elseif variant == "Shiny Mythic" then multiplier = 2.25 end  
+local function getBoostedStats(stats, variant)
+    local multiplier = 1
+    if variant == "Shiny" then multiplier = 1.5
+    elseif variant == "Mythic" then multiplier = 1.75
+    elseif variant == "Shiny Mythic" then multiplier = 2.25 end
 
-    local boosted = {}  
-    for stat, value in pairs(stats) do  
-        if typeof(value) == "number" then  
-            boosted[stat] = math.floor(value * multiplier)  
-        else  
-            boosted[stat] = value  
-        end  
-    end  
-    return boosted  
-end  
+    local boosted = {}
+    for stat, value in pairs(stats) do
+        if typeof(value) == "number" then
+            boosted[stat] = math.floor(value * multiplier)
+        else
+            boosted[stat] = value
+        end
+    end
+    return boosted
+end
 
 local function getPetImageLink(petName, variant)
     local petEntry = petsModule[petName]
-    if not petEntry or not petEntry.Images then
-        warn("⚠️ Pet-ul '" .. petName .. "' nu are câmpul 'Images'.")
-        return nil
-    end
+    if not petEntry or not petEntry.Images then return nil end
 
     local imageKey = ({
         ["Normal"] = "Normal",
@@ -132,147 +165,127 @@ local function getPetImageLink(petName, variant)
         ["Shiny Mythic"] = "MythicShiny"
     })[variant]
 
-    if not imageKey then
-        warn("⚠️ Variantă necunoscută: " .. variant)
-        return nil
-    end
-
     local assetStr = petEntry.Images[imageKey]
-    if not assetStr then
-        warn("⚠️ Lipsește imaginea pentru '" .. variant .. "' la pet-ul '" .. petName .. "'.")
-        return nil
-    end
-
-    -- Extrage ID-ul numeric (în caz că e precedat de "rbxassetid://")
-    local assetId = assetStr:match("%d+")
-    if not assetId then
-        warn("⚠️ Format invalid pentru AssetId la pet-ul '" .. petName .. "'.")
-        return nil
-    end
-
-    return "https://ps99.biggamesapi.io/image/" .. assetId
+    local assetId = assetStr and assetStr:match("%d+")
+    return assetId and ("https://ps99.biggamesapi.io/image/" .. assetId) or nil
 end
 
-local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dropChance, egg, rarity, tier)  
-    local colorMap = {  
-        ["Normal"] = 65280,  
-        ["Shiny"] = 0xFFD700,  
-        ["Mythic"] = 0x8000FF,  
-        ["Shiny Mythic"] = 0x00FFFF,  
+local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dropChance, egg, rarity, tier)
+    local colorMap = {
+        ["Normal"] = 65280,
+        ["Shiny"] = 0xFFD700,
+        ["Mythic"] = 0x8000FF,
+        ["Shiny Mythic"] = 0x00FFFF,
         ["Secret"] = 0xFF0000,
         ["Infinity"] = 0xFFFFFF
-    }  
-    local embedColor = colorMap[rarity] or colorMap[variant] or 65280  
+    }
+    local embedColor = colorMap[rarity] or colorMap[variant] or 65280
 
-    local hatchCount = abbreviateNumber(totalHatches)  
+    local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
 
-    local description = string.format([[  
-🎉・**Hatch Info**  
-- 🥚 **Egg:** `%s`  
-- 🏆 **Chance:** `%s`  
-- 🎁 **Rarity:** `%s`  
-- 🔢 **Tier:** `%s`  
+    local description = string.format([[
+🎉・**Hatch Info**
+- 🥚 **Egg:** `%s`
+- 🏆 **Chance:** `%s`
+- 🎁 **Rarity:** `%s`
+- 🔢 **Tier:** `%s`
 
-✨・**Pet Stats**  
-- <:bubbles:1392626533826433144> **Bubbles:** `%s`  
-- <:gems:1392626582929277050> **Gems:** `%s`  
-- <:coins:1392626598188154977> **Coins:** `%s`  
+✨・**Pet Stats**
+- <:bubbles:1392626533826433144> **Bubbles:** `%s`
+- <:gems:1392626582929277050> **Gems:** `%s`
+- <:coins:1392626598188154977> **Coins:** `%s`
 
-👤・**User Info**  
-- 🕒 **Playtime:** `%s`  
-- 🥚 **Hatches:** `%s`  
-- <:coins:1392626598188154977> **Coins:** `%s`  
-- <:gems:1392626582929277050> **Gems:** `%s`  
-- <:ticket:1392626567464747028> **Tickets:** `%s`  
-    ]],  
-    egg or "Unknown",  
-    formatChance(dropChance or "Unknown"),  
-    rarity or "Legendary",  
-    tier or "1",  
-    boostedStats.Bubbles or "N/A",  
-    boostedStats.Gems or "N/A",  
-    boostedStats.Coins or "N/A",  
-    formatPlaytime(),  
-    hatchCount,  
-    abbreviateNumber(coins),  
-    abbreviateNumber(gems),  
-    abbreviateNumber(tickets)  
-    )  
+👤・**User Info**
+- 🕒 **Playtime:** `%s`
+- 🥚 **Hatches:** `%s`
+- <:coins:1392626598188154977> **Coins:** `%s`
+- <:gems:1392626582929277050> **Gems:** `%s`
+- <:ticket:1392626567464747028> **Tickets:** `%s`
+    ]],
+        egg or "Unknown",
+        formatChance(dropChance or "Unknown"),
+        rarity or "Legendary",
+        tier or "1",
+        boostedStats.Bubbles or "N/A",
+        boostedStats.Gems or "N/A",
+        boostedStats.Coins or "N/A",
+        formatPlaytime(),
+        hatchCount,
+        abbreviateNumber(getCurrencyAmount("Coins") or coins),
+        abbreviateNumber(getCurrencyAmount("Gems") or gems),
+        abbreviateNumber(getCurrencyAmount("Tickets") or tickets)
+    )
 
-    local titleText = ""  
-    local contentText = ""  
+    local titleText = ""
+    local contentText = ""
 
     if rarity == "Infinity" then
-    titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName)
-    contentText = "@everyone"
-    elseif rarity == "Secret" then  
-        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petName)  
-        contentText = "@everyone"  
-    else  
-        titleText = string.format("||%s|| hatched a %s%s", playerName, variant ~= "Normal" and (variant .. " ") or "", petName)  
-    end  
+        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petName)
+        contentText = "@everyone"
+    elseif rarity == "Secret" then
+        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petName)
+        contentText = "@everyone"
+    else
+        titleText = string.format("||%s|| hatched a %s%s", playerName, variant ~= "Normal" and (variant .. " ") or "", petName)
+    end
 
-    local body = {  
-        content = contentText,  
-        embeds = {{  
-            author = {  
-                name = "Pet Notification",  
-                icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"  
-            },  
-            title = titleText,  
-            description = description,  
-            color = embedColor, 
-            thumbnail = petImageLink and { url = petImageLink } or nil
-        }}  
-    }  
+    http_request({
+        Url = webhookUrl,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body = HttpService:JSONEncode({
+            content = contentText,
+            embeds = {{
+                author = {
+                    name = "Pet Notification",
+                    icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
+                },
+                title = titleText,
+                description = description,
+                color = embedColor,
+                thumbnail = petImageLink and { url = petImageLink } or nil
+            }}
+        })
+    })
+end
 
-    http_request({  
-        Url = webhookUrl,  
-        Method = "POST",  
-        Headers = { ["Content-Type"] = "application/json" },  
-        Body = HttpService:JSONEncode(body)  
-    })  
-end  
+systemMessageEvent.OnClientEvent:Connect(function(message)
+    if typeof(message) ~= "string" then return end
+    if not message:find(localPlayer.Name) then return end
 
-systemMessageEvent.OnClientEvent:Connect(function(message)  
-    if typeof(message) ~= "string" then return end  
-    if not message:find(localPlayer.Name) then return end -- ignoră dacă nu e al tău
-
-    message = message:gsub("<[^>]->", "")  
-
+    message = message:gsub("<[^>]->", "")
     local petData, chanceStr = string.match(message, "hatched a (.+) %(([%d%.eE%-]+%%)%)")
-    if not petData or not chanceStr then return end  
+    if not petData or not chanceStr then return end
 
-    local variant = "Normal"  
-    local petName = petData  
+    local variant = "Normal"
+    local petName = petData
 
-    if string.find(petData, "Shiny") and string.find(petData, "Mythic") then  
-        variant = "Shiny Mythic"  
-        petName = petName:gsub("Shiny Mythic ", "")  
-    elseif string.find(petData, "Shiny") then  
-        variant = "Shiny"  
-        petName = petName:gsub("Shiny ", "")  
-    elseif string.find(petData, "Mythic") then  
-        variant = "Mythic"  
-        petName = petName:gsub("Mythic ", "")  
-    end  
+    if string.find(petData, "Shiny") and string.find(petData, "Mythic") then
+        variant = "Shiny Mythic"
+        petName = petName:gsub("Shiny Mythic ", "")
+    elseif string.find(petData, "Shiny") then
+        variant = "Shiny"
+        petName = petName:gsub("Shiny ", "")
+    elseif string.find(petData, "Mythic") then
+        variant = "Mythic"
+        petName = petName:gsub("Mythic ", "")
+    end
 
-    petName = petName:match("^%s*(.-)%s*$")  
+    petName = petName:match("^%s*(.-)%s*$")
+    local petEntry = petsModule[petName]
+    if not petEntry or not petEntry.Stats then
+        warn("⚠️ Pet not found in module:", petName)
+        return
+    end
 
-    local petEntry = petsModule[petName]  
-    if not petEntry or not petEntry.Stats then  
-        warn("⚠️ Pet not found in module:", petName)  
-        return  
-    end  
+    local boostedStats = getBoostedStats(petEntry.Stats, variant)
+    local egg = petEntry.Egg or "Unknown"
+    local rarity = petEntry.Rarity or "Legendary"
+    local tier = petEntry.Tier or "1"
 
-    local boostedStats = getBoostedStats(petEntry.Stats, variant)  
-    local egg = petEntry.Egg or "Unknown"  
-    local rarity = petEntry.Rarity or "Legendary"  
-    local tier = petEntry.Tier or "1"  
-
-    sendDiscordWebhook(localPlayer.Name, petName, variant, boostedStats, chanceStr, egg, rarity, tier)  
-end)  
+    sendDiscordWebhook(localPlayer.Name, petName, variant, boostedStats, chanceStr, egg, rarity, tier)
+end)
 
 print("✅ Pet notifier & webhook activat pentru: " .. localPlayer.Name)
 
