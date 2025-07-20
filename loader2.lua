@@ -300,7 +300,7 @@ print("✅ Pet notifier & webhook activat pentru: " .. localPlayer.Name)
 
 task.spawn(function()
     local RiftWebhooks = {
-        ["festival-rift-3"] = "https://discord.com/api/webhooks/1391374397457039441/m7NnYLMTMo1sKuYjumZ8j-LonEMoJQVmCgoC_igb_Mm2GcyY1LMfsjPWr0qebmBPMU-a",
+        ["bee-egg"] = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
         ["super-chest"] = "https://discord.com/api/webhooks/1391374777981206548/LBpfKoLMiDIjOMLpU_jb_HhPQJ-J5n--U2Ao5PvFzMM2ybzx3eqIJZv1nCz4vb8cjKwn",
         ["neon-egg"] = "https://discord.com/api/webhooks/1391374778195251210/n4Q2mz6h4rVbGxsJxDkFmZ4nIeyOe8jKybLe-G-2ZfqnTTVBJT4pzNWyESRyReolcQaM",
         ["cyber-egg"]       = "https://discord.com/api/webhooks/1391374777335156818/4cKl6U8nMjlOVx4NximkLpXqwT73gShGWILiVmEZL7hP5RrdqdRlc9UIaddEiDiT_Nyu",
@@ -320,7 +320,7 @@ task.spawn(function()
     }
 
     local RiftThumbnails = {
-        ["festival-rift-3"] = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359749046866130/July4th_Egg.png",
+        ["bee-egg"] = "https://cdn.discordapp.com/attachments/1392217302153429022/1396395263643353098/Update_13_-_Bee_Rift.png?ex=687dedee&is=687c9c6e&hm=4dd9e3656796054b7d02bcc82880e85f388fa3869b374ca5eb7c6bf334aeec3a&",
         ["cyber-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748857860226/Cyber_Egg.png",
         ["super-chest"] = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766161018921/Super_Chest.png?ex=6874bb15&is=68736995&hm=9ad0e179e0e4b0bb457af2f8ad0b3551622617aa89e14320b1fa068dfcca3f4d&",
         ["neon-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766421332068/Neon_Egg.png?ex=6874bb15&is=68736995&hm=6e9e7a3b226c4184bda547f8008086398f78efe0addfe110e831745ab1185372&",
