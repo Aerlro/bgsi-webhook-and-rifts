@@ -342,7 +342,7 @@ task.spawn(function()
     local alreadyNotified = {}
 
     local function formatTitle(name)
-        local displayName = name == "festival-rift-3" and "July4th Egg" or name:gsub("-", " ")
+        local displayName = name:gsub("-", " ")
         return displayName:gsub("(%a)([%w_']*)", function(f, r) return f:upper() .. r:lower() end) .. " Rift Found!"
     end
 
@@ -381,7 +381,7 @@ task.spawn(function()
                 alreadyNotified[riftId] = true
 
                 local now = os.time()
-                local despawn_time = now + 600
+                local despawn_time = now + 1800
                 local timestamp = "<t:" .. despawn_time .. ":R>"
                 local player_count = #Players:GetPlayers()
                 local join_link = "https://www.roblox.com/games/" .. game.PlaceId .. "/--?launchData&gameInstanceId=" .. game.JobId
