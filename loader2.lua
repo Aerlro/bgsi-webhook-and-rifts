@@ -5,9 +5,11 @@ local RunService = game:GetService("RunService")
 local petsModule = require(rs.Shared.Data.Pets)
 
 local webhookUrl = "https://discord.com/api/webhooks/1391374778882986035/KzVd6EaiXL73gd2YN_FIIHt-d36SeaKONLqsjPGiTDin65p_KrRBLfwr7saQpbXUZCFI"
+local serverLuckWebhookUrl = "https://discord.com/api/webhooks/1391368932761276436/eUsp8pJMsgzC3APxmw_qN64bWZrWyKEUIZraHTLFLUqi7yh0TMvXWEVBl3AnkHjMSfXi"
 
 local localPlayer = Players.LocalPlayer
 print("Roblox Name: " .. localPlayer.Name)
+local luckNotificationSent = false
 
 local systemMessageEvent = rs:WaitForChild("Shared"):WaitForChild("Framework")
     :WaitForChild("Utilities"):WaitForChild("SendSystemMessage"):WaitForChild("RemoteEvent")
@@ -74,6 +76,18 @@ if remote then
             totalHatches = count
         end
     end)
+end
+
+local function formatTimeAuto(seconds)
+	if seconds < 60 then
+		return string.format("%.0fs", seconds)
+	elseif seconds < 3600 then
+		return string.format("%.1fm", seconds / 60)
+	elseif seconds < 86400 then
+		return string.format("%.2fh", seconds / 3600)
+	else
+		return string.format("%.2fd", seconds / 86400)
+	end
 end
 
 local function abbreviateNumber(num)
@@ -296,7 +310,106 @@ systemMessageEvent.OnClientEvent:Connect(function(message)
     sendDiscordWebhook(localPlayer.Name, petName, variant, boostedStats, chanceStr, egg, rarity, tier)
 end)
 
-print("✅ Pet notifier & webhook activat pentru: " .. localPlayer.Name)
+local function sendServerLuckEmbed(boost, timeText)
+	local titleText = "ServerLuck Activ!"
+	local contentText = ""
+
+	local totalSeconds = 0
+	local d, h, m, s
+
+	-- Încearcă să parseze în format d:hh:mm:ss
+	d, h, m, s = string.match(timeText, "(%d+):(%d+):(%d+):(%d+)")
+	if d and h and m and s then
+		totalSeconds = tonumber(d)*86400 + tonumber(h)*3600 + tonumber(m)*60 + tonumber(s)
+	else
+		h, m, s = string.match(timeText, "(%d+):(%d+):(%d+)")
+		if h and m and s then
+			totalSeconds = tonumber(h)*3600 + tonumber(m)*60 + tonumber(s)
+		else
+			m, s = string.match(timeText, "(%d+):(%d+)")
+			if m and s then
+				totalSeconds = tonumber(m)*60 + tonumber(s)
+			end
+		end
+	end
+
+	local playerList = {}
+	for _, plr in ipairs(Players:GetPlayers()) do
+		table.insert(playerList, plr.Name)
+	end
+
+	local joinLink = "https://www.roblox.com/games/" .. game.PlaceId .. "/--?launchData&gameInstanceId=" .. game.JobId
+	local currentPlayers = #Players:GetPlayers()
+
+	local description = string.format([[
+🍀・**Luck Status**
+- 📈 **Boost:** `%s`
+- ⏰ **Time Remaining:** `%s`
+- 🧮 **Time Left:** `%s`
+- 👥 **Players:** `%s/%s`
+- 🔗 **Join Link:** [Click to Join](%s)
+	]],
+		boost,
+		timeText,
+		formatTimeAuto(totalSeconds),
+		currentPlayers, 12,
+		joinLink
+	)
+
+	http_request({
+		Url = serverLuckWebhookUrl,
+		Method = "POST",
+		Headers = { ["Content-Type"] = "application/json" },
+		Body = HttpService:JSONEncode({
+			content = contentText,
+			embeds = {{
+				author = {
+					name = "ServerLuck Notifier",
+					icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
+				},
+				title = titleText,
+				description = description,
+				color = 0x00FFCC
+			}}
+		})
+	})
+end
+
+task.spawn(function()
+	while not luckNotificationSent do
+		local success, result = pcall(function()
+			local buffs = localPlayer:WaitForChild("PlayerGui"):WaitForChild("ScreenGui"):WaitForChild("Buffs")
+			local serverLuck = buffs:FindFirstChild("ServerLuck")
+			if serverLuck then
+				local button = serverLuck:FindFirstChild("Button")
+				if button then
+					local amount = button:FindFirstChild("Amount")
+					local label = button:FindFirstChild("Label")
+
+					if amount and label and amount:IsA("TextLabel") and label:IsA("TextLabel") then
+						local boostText = amount.Text
+						local timeLeft = label.Text
+
+						if boostText:match("%%") and timeLeft:match("%d+:%d+") then
+							if not luckNotificationSent then
+								luckNotificationSent = true
+								sendServerLuckEmbed(boostText, timeLeft)
+							end
+						end
+					end
+				end
+			end
+		end)
+
+		if not success then
+			warn("Eroare verificare ServerLuck:", result)
+		end
+
+		task.wait(5)
+	end
+end)
+
+print("✅ Pet notifier & Server Luck activat pentru: " .. localPlayer.Name)
 
 task.spawn(function()
     local RiftWebhooks = {
