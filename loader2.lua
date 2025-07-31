@@ -474,7 +474,7 @@ task.spawn(function()
                 local despawn_time = now + 1800
                 local timestamp = "<t:" .. despawn_time .. ":R>"
                 local player_count = #Players:GetPlayers()
-                local join_link = "https://www.roblox.com/games/" .. game.PlaceId .. "/--?launchData&gameInstanceId=" .. game.JobId
+                local join_link = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
                 local displayName = rift.Name:gsub("-", " ")
                 local height = tostring(math.floor(primary.Position.Y))
                 local thumbnail_url = RiftThumbnails[rift.Name] or ""
