@@ -326,13 +326,13 @@ local function sendServerLuckEmbed(boostText, timeLeftText)
 	local playerCount = #Players:GetPlayers()
 	local join_link = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
 
-	local titleText = "ServerLuck Activated!"
+	local titleText = "ServerLuck Found!"
 	local description = string.format([[ 
-<:boost:1234567890123456> **Boost:** `%s`
-⏱ **Time Remaining:** `%s`
-🕓 **Time Left:** `%s`
-👥 **Players:** `%d/12`
-🔗 **Join Link:** [Click Here](%s)
+🍀・**Boost:** `%s`
+⏱・**Time Remaining:** `%s`
+🕓・**Time Left:** `%s`
+👥・**Players:** `%d/12`
+🔗・**Join Link:** [Click Here](%s)
 	]], boostText, timeLeftText, timeAuto, playerCount, join_link)
 
 	http_request({
@@ -343,12 +343,12 @@ local function sendServerLuckEmbed(boostText, timeLeftText)
 			content = "",
 			embeds = {{
 				author = {
-					name = "ServerLuck Notifier",
+					name = "aerlrobos",
 					icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
 				},
 				title = titleText,
 				description = description,
-				color = 0x00FFCC
+				color = tonumber("2F3136", 16)
 			}}
 		})
 	})
