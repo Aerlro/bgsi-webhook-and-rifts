@@ -78,15 +78,23 @@ if remote then
     end)
 end
 
-local function formatTimeAuto(seconds)
-	if seconds < 60 then
-		return string.format("%.0fs", seconds)
-	elseif seconds < 3600 then
-		return string.format("%.1fm", seconds / 60)
-	elseif seconds < 86400 then
-		return string.format("%.2fh", seconds / 3600)
+local function formatTimeAuto(totalSeconds)
+	local d = math.floor(totalSeconds / 86400)
+	local h = math.floor((totalSeconds % 86400) / 3600)
+	local m = math.floor((totalSeconds % 3600) / 60)
+	local s = totalSeconds % 60
+
+	if d > 0 then
+		local hours = math.floor(totalSeconds / 3600 * 100) / 100
+		return string.format("%.0fd (%sh)", d, hours)
+	elseif h > 0 then
+		local hours = math.floor(totalSeconds / 3600 * 100) / 100
+		return string.format("%.2fh", hours)
+	elseif m > 0 then
+		local minutes = math.floor(totalSeconds / 60 * 100) / 100
+		return string.format("%.2fm", minutes)
 	else
-		return string.format("%.2fd", seconds / 86400)
+		return string.format("%ds", s)
 	end
 end
 
