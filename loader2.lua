@@ -318,58 +318,29 @@ systemMessageEvent.OnClientEvent:Connect(function(message)
     sendDiscordWebhook(localPlayer.Name, petName, variant, boostedStats, chanceStr, egg, rarity, tier)
 end)
 
-local function sendServerLuckEmbed(boost, timeText)
-	local titleText = "ServerLuck Activ!"
-	local contentText = ""
+local function sendServerLuckEmbed(boostText, timeLeftText)
+	local hours, minutes, seconds = timeLeftText:match("(%d+):(%d+):(%d+)")
+	local totalSeconds = tonumber(hours) * 3600 + tonumber(minutes) * 60 + tonumber(seconds)
+	local timeAuto = formatTimeAuto(totalSeconds)
 
-	local totalSeconds = 0
-	local d, h, m, s
+	local playerCount = #Players:GetPlayers()
+	local join_link = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
 
-	-- Încearcă să parseze în format d:hh:mm:ss
-	d, h, m, s = string.match(timeText, "(%d+):(%d+):(%d+):(%d+)")
-	if d and h and m and s then
-		totalSeconds = tonumber(d)*86400 + tonumber(h)*3600 + tonumber(m)*60 + tonumber(s)
-	else
-		h, m, s = string.match(timeText, "(%d+):(%d+):(%d+)")
-		if h and m and s then
-			totalSeconds = tonumber(h)*3600 + tonumber(m)*60 + tonumber(s)
-		else
-			m, s = string.match(timeText, "(%d+):(%d+)")
-			if m and s then
-				totalSeconds = tonumber(m)*60 + tonumber(s)
-			end
-		end
-	end
-
-	local playerList = {}
-	for _, plr in ipairs(Players:GetPlayers()) do
-		table.insert(playerList, plr.Name)
-	end
-
-	local joinLink = "https://www.roblox.com/games/" .. game.PlaceId .. "/--?launchData&gameInstanceId=" .. game.JobId
-	local currentPlayers = #Players:GetPlayers()
-
-	local description = string.format([[
-🍀・**Luck Status**
-- 📈 **Boost:** `%s`
-- ⏰ **Time Remaining:** `%s`
-- 🧮 **Time Left:** `%s`
-- 👥 **Players:** `%s/%s`
-- 🔗 **Join Link:** [Click to Join](%s)
-	]],
-		boost,
-		timeText,
-		formatTimeAuto(totalSeconds),
-		currentPlayers, 12,
-		joinLink
-	)
+	local titleText = "ServerLuck Activated!"
+	local description = string.format([[ 
+<:boost:1234567890123456> **Boost:** `%s`
+⏱ **Time Remaining:** `%s`
+🕓 **Time Left:** `%s`
+👥 **Players:** `%d/12`
+🔗 **Join Link:** [Click Here](%s)
+	]], boostText, timeLeftText, timeAuto, playerCount, join_link)
 
 	http_request({
 		Url = serverLuckWebhookUrl,
 		Method = "POST",
 		Headers = { ["Content-Type"] = "application/json" },
 		Body = HttpService:JSONEncode({
-			content = contentText,
+			content = "",
 			embeds = {{
 				author = {
 					name = "ServerLuck Notifier",
@@ -398,11 +369,9 @@ task.spawn(function()
 						local boostText = amount.Text
 						local timeLeft = label.Text
 
-						if boostText:match("%%") and timeLeft:match("%d+:%d+") then
-							if not luckNotificationSent then
-								luckNotificationSent = true
-								sendServerLuckEmbed(boostText, timeLeft)
-							end
+						if boostText:match("%%") and timeLeft:match("%d+:%d+:%d+") then
+							luckNotificationSent = true
+							sendServerLuckEmbed(boostText, timeLeft)
 						end
 					end
 				end
