@@ -356,7 +356,7 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 
 	local titleText = "ServerLuck Found!"
 
-	HttpService:RequestAsync({
+	http_request({
 		Url = serverLuckWebhookUrl,
 		Method = "POST",
 		Headers = { ["Content-Type"] = "application/json" },
