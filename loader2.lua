@@ -76,48 +76,6 @@ if remote then
     end)
 end
 
-local function convertTimeLeftText(timeText)
-	timeText = timeText:lower()
-
-	if timeText:match("^%d+:%d+") then
-		local h, m, s = timeText:match("(%d+):(%d+):?(%d*)")
-		h = tonumber(h) or 0
-		m = tonumber(m) or 0
-		s = tonumber(s) or 0
-		local totalSeconds = h * 3600 + m * 60 + s
-		local hours = totalSeconds / 3600
-		return string.format("%.2fh", hours)
-	end
-
-	local days = timeText:match("(%d+)%s*day")
-	if days then
-		local hours = tonumber(days) * 24
-		return string.format("%dh", hours)
-	end
-
-	return timeText
-end
-
-local function formatTimeAuto(totalSeconds)
-	local d = math.floor(totalSeconds / 86400)
-	local h = math.floor((totalSeconds % 86400) / 3600)
-	local m = math.floor((totalSeconds % 3600) / 60)
-	local s = totalSeconds % 60
-
-	if d > 0 then
-		local hours = math.floor(totalSeconds / 3600 * 100) / 100
-		return string.format("%.0fd (%sh)", d, hours)
-	elseif h > 0 then
-		local hours = math.floor(totalSeconds / 3600 * 100) / 100
-		return string.format("%.2fh", hours)
-	elseif m > 0 then
-		local minutes = math.floor(totalSeconds / 60 * 100) / 100
-		return string.format("%.2fm", minutes)
-	else
-		return string.format("%ds", s)
-	end
-end
-
 local function abbreviateNumber(num)
     num = tonumber(num) or 0
     local absNum = math.abs(num)
@@ -339,8 +297,37 @@ systemMessageEvent.OnClientEvent:Connect(function(message)
 end)
 
 local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
-	local converted = convertTimeLeftText(rawTimeLeft)
+	local function parseTimeStringToSeconds(text)
+		text = text:lower()
+		local d = tonumber(text:match("(%d+)%s*day")) or 0
+		local h, m, s = text:match("(%d+):(%d+):?(%d*)")
+		h = tonumber(h) or 0
+		m = tonumber(m) or 0
+		s = tonumber(s) or 0
+		return d * 86400 + h * 3600 + m * 60 + s
+	end
 
+	local function formatTimeAuto(totalSeconds)
+		local d = math.floor(totalSeconds / 86400)
+		local h = math.floor((totalSeconds % 86400) / 3600)
+		local m = math.floor((totalSeconds % 3600) / 60)
+		local s = totalSeconds % 60
+
+		if d > 0 then
+			local hours = math.floor(totalSeconds / 3600 * 100) / 100
+			return string.format("%dd (%.2fh)", d, hours)
+		elseif h > 0 then
+			local hours = math.floor(totalSeconds / 3600 * 100) / 100
+			return string.format("%.2fh", hours)
+		elseif m > 0 then
+			local minutes = math.floor(totalSeconds / 60 * 100) / 100
+			return string.format("%.2fm", minutes)
+		else
+			return string.format("%ds", s)
+		end
+	end
+
+	local converted = formatTimeAuto(parseTimeStringToSeconds(rawTimeLeft))
 	local joinLink = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
 	local currentPlayers = #Players:GetPlayers()
 	local maxPlayers = 12
@@ -350,28 +337,28 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 - 🔥 **Boost:** `%s`
 - ⏳ **Time Remaining:** `%s`
 - ⌛ **Hours Left:** `%s`
-- 👥 **Players:** `%s/%s`
+- 👥 **Players:** `%d/%d`
 - 🔗 **Join Link:** [Click Here](%s)
 ]], boostPercent, rawTimeLeft, converted, currentPlayers, maxPlayers, joinLink)
 
-	local titleText = "ServerLuck Found!"
+	local payload = {
+		content = "",
+		embeds = {{
+			author = {
+				name = "aerlrobos",
+				icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
+			},
+			title = "ServerLuck Found!",
+			description = description,
+			color = tonumber("2F3136", 16)
+		}}
+	}
 
-	http_request({
+	http_service({
 		Url = serverLuckWebhookUrl,
 		Method = "POST",
 		Headers = { ["Content-Type"] = "application/json" },
-		Body = HttpService:JSONEncode({
-			content = "",
-			embeds = {{
-				author = {
-					name = "aerlrobos",
-					icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
-				},
-				title = titleText,
-				description = description,
-				color = tonumber("2F3136", 16)
-			}}
-		})
+		Body = HttpService:JSONEncode(payload)
 	})
 end
 
