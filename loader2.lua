@@ -19,7 +19,6 @@ local startTime = tick()
 local coins, gems, tickets = "N/A", "N/A", "N/A"
 local totalHatches = 0
 
--- Funcție pentru obținerea valorilor reale din GUI
 local function getCurrencyAmount(currencyName)
 	local success, result = pcall(function()
 		local label = localPlayer:WaitForChild("PlayerGui")
@@ -44,7 +43,6 @@ local function getCurrencyAmount(currencyName)
 	end
 end
 
--- Update din GUI dacă nu s-au primit prin Remote
 coroutine.wrap(function()
     while true do
         if coins == "N/A" then
@@ -76,6 +74,28 @@ if remote then
             totalHatches = count
         end
     end)
+end
+
+local function convertTimeLeftText(timeText)
+	timeText = timeText:lower()
+
+	if timeText:match("^%d+:%d+") then
+		local h, m, s = timeText:match("(%d+):(%d+):?(%d*)")
+		h = tonumber(h) or 0
+		m = tonumber(m) or 0
+		s = tonumber(s) or 0
+		local totalSeconds = h * 3600 + m * 60 + s
+		local hours = totalSeconds / 3600
+		return string.format("%.2fh", hours)
+	end
+
+	local days = timeText:match("(%d+)%s*day")
+	if days then
+		local hours = tonumber(days) * 24
+		return string.format("%dh", hours)
+	end
+
+	return timeText
 end
 
 local function formatTimeAuto(totalSeconds)
@@ -318,24 +338,25 @@ systemMessageEvent.OnClientEvent:Connect(function(message)
     sendDiscordWebhook(localPlayer.Name, petName, variant, boostedStats, chanceStr, egg, rarity, tier)
 end)
 
-local function sendServerLuckEmbed(boostText, timeLeftText)
-	local hours, minutes, seconds = timeLeftText:match("(%d+):(%d+):(%d+)")
-	local totalSeconds = tonumber(hours) * 3600 + tonumber(minutes) * 60 + tonumber(seconds)
-	local timeAuto = formatTimeAuto(totalSeconds)
+local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
+	local converted = convertTimeLeftText(rawTimeLeft)
 
-	local playerCount = #Players:GetPlayers()
-	local join_link = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
+	local joinLink = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
+	local currentPlayers = #Players:GetPlayers()
+	local maxPlayers = 12
+
+	local description = string.format([[
+🍀・**Luck Status**
+- 🔥 **Boost:** `%s`
+- ⏳ **Time Remaining:** `%s`
+- ⌛ **Hours Left:** `%s`
+- 👥 **Players:** `%s/%s`
+- 🔗 **Join Link:** [Click Here](%s)
+]], boostPercent, rawTimeLeft, converted, currentPlayers, maxPlayers, joinLink)
 
 	local titleText = "ServerLuck Found!"
-	local description = string.format([[ 
-🍀・**Boost:** `%s`
-⏱・**Time Remaining:** `%s`
-🕓・**Time Left:** `%s`
-👥・**Players:** `%d/12`
-🔗・**Join Link:** [Click Here](%s)
-	]], boostText, timeLeftText, timeAuto, playerCount, join_link)
 
-	http_request({
+	HttpService:RequestAsync({
 		Url = serverLuckWebhookUrl,
 		Method = "POST",
 		Headers = { ["Content-Type"] = "application/json" },
@@ -369,9 +390,11 @@ task.spawn(function()
 						local boostText = amount.Text
 						local timeLeft = label.Text
 
-						if boostText:match("%%") and timeLeft:match("%d+:%d+:%d+") then
-							luckNotificationSent = true
-							sendServerLuckEmbed(boostText, timeLeft)
+						if boostText:match("%%") and timeLeft:match("%d") then
+							if not luckNotificationSent then
+								luckNotificationSent = true
+								sendServerLuckEmbed(boostText, timeLeft)
+							end
 						end
 					end
 				end
@@ -454,7 +477,6 @@ task.spawn(function()
             if rift:IsA("Model") and RiftWebhooks[rift.Name] then
                 local multiplier = getRiftMultiplier(rift)
 
-                -- ✅ verificare tip rift: ignorăm egg rift dacă Luck ≠ 25x
                 local isChestRift = rift.Name == "golden-chest" or rift.Name == "royal-chest" or rift.Name == "dice-rift" or rift.Name == "super-chest"
                 if not isChestRift then
                     if not multiplier or multiplier ~= 25 then
