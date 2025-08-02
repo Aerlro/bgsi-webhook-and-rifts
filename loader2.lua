@@ -308,22 +308,17 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 	end
 
 	local function formatTimeAuto(totalSeconds)
-		local d = math.floor(totalSeconds / 86400)
-		local h = math.floor((totalSeconds % 86400) / 3600)
-		local m = math.floor((totalSeconds % 3600) / 60)
-		local s = totalSeconds % 60
+		local hours = math.floor(totalSeconds / 3600 * 100) / 100
 
-		if d > 0 then
-			local hours = math.floor(totalSeconds / 3600 * 100) / 100
-			return string.format("%dd (%.2fh)", d, hours)
-		elseif h > 0 then
-			local hours = math.floor(totalSeconds / 3600 * 100) / 100
+		if totalSeconds >= 86400 then
+			return string.format("%.0fh", hours) -- afișează doar ore pentru zile
+		elseif totalSeconds >= 3600 then
 			return string.format("%.2fh", hours)
-		elseif m > 0 then
+		elseif totalSeconds >= 60 then
 			local minutes = math.floor(totalSeconds / 60 * 100) / 100
 			return string.format("%.2fm", minutes)
 		else
-			return string.format("%ds", s)
+			return string.format("%ds", totalSeconds)
 		end
 	end
 
