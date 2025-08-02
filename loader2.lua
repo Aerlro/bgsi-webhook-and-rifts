@@ -354,7 +354,7 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 		}}
 	}
 
-	http_service({
+	http_request({
 		Url = serverLuckWebhookUrl,
 		Method = "POST",
 		Headers = { ["Content-Type"] = "application/json" },
