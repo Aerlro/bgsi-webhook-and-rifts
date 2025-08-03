@@ -264,8 +264,13 @@ systemMessageEvent.OnClientEvent:Connect(function(message)
     if not message:find(localPlayer.Name) then return end
 
     message = message:gsub("<[^>]->", "")
-    local petData, chanceStr = string.match(message, "hatched a (.+) %(([%d%.eE%-]+%%)%)")
+    local petData, chanceStr = string.match(message, "hatched a (.+) %(([%d%.eE%-]+%%?)%)")
     if not petData or not chanceStr then return end
+
+    local chanceNum = tonumber(chanceStr:match("[%d%.eE-]+"))
+    if not chanceNum or (100 / chanceNum) < 1_000_000 then
+        return
+    end
 
     local variant = "Normal"
     local petName = petData
