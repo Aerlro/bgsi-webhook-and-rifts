@@ -200,7 +200,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     -- Construiește descrierea pentru moneda userului
     local userCurrencyDesc = ""
     if boostedStats.Pearls then
-        userCurrencyDesc = string.format("🪙 **Pearls:** `%s`", abbreviateNumber(getCurrencyAmount("Pearls") or pearls))
+        userCurrencyDesc = string.format("<:pearls:1403707150513213550> **Pearls:** `%s`", abbreviateNumber(getCurrencyAmount("Pearls") or pearls))
     else
         userCurrencyDesc = string.format("<:coins:1392626598188154977> **Coins:** `%s`", abbreviateNumber(getCurrencyAmount("Coins") or coins))
     end
