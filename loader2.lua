@@ -197,7 +197,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
 
-    -- Construiește descrierea pentru moneda userului
+    -- Construiește descrierea pentru moneda userului: Pearls sau Coins
     local userCurrencyDesc = ""
     if boostedStats.Pearls then
         userCurrencyDesc = string.format("<:pearls:1403707150513213550> **Pearls:** `%s`", abbreviateNumber(getCurrencyAmount("Pearls") or pearls))
@@ -215,7 +215,6 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 ✨・**Pet Stats**
 - <:bubbles:1392626533826433144> **Bubbles:** `%s`
 - <:gems:1392626582929277050> **Gems:** `%s`
-- %s: `%s`
 
 👤・**User Info**
 - 🕒 **Playtime:** `%s`
@@ -230,8 +229,6 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         tier or "1",
         boostedStats.Bubbles or "N/A",
         boostedStats.Gems or "N/A",
-        currencyLabel,
-        currencyValue,
         formatPlaytime(),
         hatchCount,
         userCurrencyDesc,
