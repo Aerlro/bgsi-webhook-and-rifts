@@ -197,13 +197,22 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
 
-    -- Construiește descrierea pentru moneda userului: Pearls sau Coins
-    local userCurrencyDesc = ""
-    if boostedStats.Pearls then
-        userCurrencyDesc = string.format("<:pearls:1403707150513213550> **Pearls:** `%s`", abbreviateNumber(getCurrencyAmount("Pearls") or pearls))
+    local petCurrencyLabel = ""
+    local petCurrencyValue = ""
+
+    if boostedStats.Tickets then
+        petCurrencyLabel = "<:ticket:1392626567464747028> Tickets"
+        petCurrencyValue = abbreviateNumber(boostedStats.Tickets)
+    elseif boostedStats.Pearls then
+        petCurrencyLabel = "<:pearls:1403707150513213550> Pearls"
+        petCurrencyValue = abbreviateNumber(boostedStats.Pearls)
     else
-        userCurrencyDesc = string.format("<:coins:1392626598188154977> **Coins:** `%s`", abbreviateNumber(getCurrencyAmount("Coins") or coins))
+        petCurrencyLabel = "<:coins:1392626598188154977> Coins"
+        petCurrencyValue = abbreviateNumber(boostedStats.Coins or "N/A")
     end
+
+    local userCoins = abbreviateNumber(getCurrencyAmount("Coins") or coins)
+    local userPearls = abbreviateNumber(getCurrencyAmount("Pearls") or pearls)
 
     local description = string.format([[
 🎉・**Hatch Info**
@@ -215,11 +224,13 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 ✨・**Pet Stats**
 - <:bubbles:1392626533826433144> **Bubbles:** `%s`
 - <:gems:1392626582929277050> **Gems:** `%s`
+- %s: `%s`
 
 👤・**User Info**
 - 🕒 **Playtime:** `%s`
 - 🥚 **Hatches:** `%s`
-- %s
+- <:coins:1392626598188154977> **Coins:** `%s`
+- <:pearls:1403707150513213550> **Pearls:** `%s`
 - <:gems:1392626582929277050> **Gems:** `%s`
 - <:ticket:1392626567464747028> **Tickets:** `%s`
     ]],
@@ -229,9 +240,12 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         tier or "1",
         boostedStats.Bubbles or "N/A",
         boostedStats.Gems or "N/A",
+        petCurrencyLabel,
+        petCurrencyValue,
         formatPlaytime(),
         hatchCount,
-        userCurrencyDesc,
+        userCoins,
+        userPearls,
         abbreviateNumber(getCurrencyAmount("Gems") or gems),
         abbreviateNumber(getCurrencyAmount("Tickets") or tickets)
     )
@@ -375,6 +389,8 @@ end
 task.spawn(function()
 	while not luckNotificationSent do
 		local success, result = pcall(function()
+			local boostText, timeLeft = nil, nil
+
 			local buffs = localPlayer:WaitForChild("PlayerGui"):WaitForChild("ScreenGui"):WaitForChild("Buffs")
 			local serverLuck = buffs:FindFirstChild("ServerLuck")
 			if serverLuck then
@@ -384,16 +400,16 @@ task.spawn(function()
 					local label = button:FindFirstChild("Label")
 
 					if amount and label and amount:IsA("TextLabel") and label:IsA("TextLabel") then
-						local boostText = amount.Text
-						local timeLeft = label.Text
-
-						if boostText:match("%%") and timeLeft:match("%d") then
-							if not luckNotificationSent then
-								luckNotificationSent = true
-								sendServerLuckEmbed(boostText, timeLeft)
-							end
-						end
+						boostText = amount.Text
+						timeLeft = label.Text
 					end
+				end
+			end
+
+			if boostText and timeLeft and boostText:match("%%") and timeLeft:match("%d") then
+				if not luckNotificationSent then
+					luckNotificationSent = true
+					sendServerLuckEmbed(boostText, timeLeft)
 				end
 			end
 		end)
