@@ -16,7 +16,7 @@ local systemMessageEvent = rs:WaitForChild("Shared"):WaitForChild("Framework")
 
 local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("PlayerDataChanged")
 local startTime = tick()
-local coins, gems, tickets = "N/A", "N/A", "N/A"
+local coins, gems, tickets, pearls = "N/A", "N/A", "N/A", "N/A"
 local totalHatches = 0
 
 local function getCurrencyAmount(currencyName)
@@ -57,6 +57,10 @@ coroutine.wrap(function()
             local value = getCurrencyAmount("Tickets")
             if value then tickets = value end
         end
+        if pearls == "N/A" then
+            local value = getCurrencyAmount("Pearls")
+            if value then pearls = value end
+        end
         wait(10)
     end
 end)()
@@ -66,6 +70,7 @@ if remote then
         if name == "Coins" then coins = value
         elseif name == "Gems" then gems = value
         elseif name == "Tickets" then tickets = value
+        elseif name == "Pearls" then pearls = value
         elseif name == "EggsOpened" and typeof(value) == "table" then
             local count = 0
             for _, v in pairs(value) do
@@ -191,7 +196,14 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 
     local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
-    local petFullName = (variant ~= "Normal" and (variant .. " ") or "") .. petName
+
+    -- Construiește descrierea pentru moneda userului
+    local userCurrencyDesc = ""
+    if boostedStats.Pearls then
+        userCurrencyDesc = string.format("🪙 **Pearls:** `%s`", abbreviateNumber(getCurrencyAmount("Pearls") or pearls))
+    else
+        userCurrencyDesc = string.format("<:coins:1392626598188154977> **Coins:** `%s`", abbreviateNumber(getCurrencyAmount("Coins") or coins))
+    end
 
     local description = string.format([[
 🎉・**Hatch Info**
@@ -203,12 +215,12 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 ✨・**Pet Stats**
 - <:bubbles:1392626533826433144> **Bubbles:** `%s`
 - <:gems:1392626582929277050> **Gems:** `%s`
-- <:coins:1392626598188154977> **Coins:** `%s`
+- %s: `%s`
 
 👤・**User Info**
 - 🕒 **Playtime:** `%s`
 - 🥚 **Hatches:** `%s`
-- <:coins:1392626598188154977> **Coins:** `%s`
+- %s
 - <:gems:1392626582929277050> **Gems:** `%s`
 - <:ticket:1392626567464747028> **Tickets:** `%s`
     ]],
@@ -218,10 +230,11 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         tier or "1",
         boostedStats.Bubbles or "N/A",
         boostedStats.Gems or "N/A",
-        boostedStats.Coins or "N/A",
+        currencyLabel,
+        currencyValue,
         formatPlaytime(),
         hatchCount,
-        abbreviateNumber(getCurrencyAmount("Coins") or coins),
+        userCurrencyDesc,
         abbreviateNumber(getCurrencyAmount("Gems") or gems),
         abbreviateNumber(getCurrencyAmount("Tickets") or tickets)
     )
@@ -230,13 +243,13 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local contentText = ""
 
     if rarity == "Infinity" then
-        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petFullName)
+        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petName)
         contentText = "@everyone"
     elseif rarity == "Secret" then
-        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petFullName)
+        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petName)
         contentText = "@everyone"
     else
-        titleText = string.format("||%s|| hatched a %s", playerName, petFullName)
+        titleText = string.format("||%s|| hatched a %s%s", playerName, variant ~= "Normal" and (variant .. " ") or "", petName)
     end
 
     http_request({
