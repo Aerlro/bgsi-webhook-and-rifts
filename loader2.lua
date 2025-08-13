@@ -389,10 +389,9 @@ end
 task.spawn(function()
 	while not luckNotificationSent do
 		local success, result = pcall(function()
-			local boostText, timeLeft = nil, nil
-
 			local buffs = localPlayer:WaitForChild("PlayerGui"):WaitForChild("ScreenGui"):WaitForChild("Buffs")
 			local serverLuck = buffs:FindFirstChild("ServerLuck")
+
 			if serverLuck then
 				local button = serverLuck:FindFirstChild("Button")
 				if button then
@@ -400,16 +399,27 @@ task.spawn(function()
 					local label = button:FindFirstChild("Label")
 
 					if amount and label and amount:IsA("TextLabel") and label:IsA("TextLabel") then
-						boostText = amount.Text
-						timeLeft = label.Text
-					end
-				end
-			end
+						local boostText = amount.Text
+						local timeLeft = label.Text
 
-			if boostText and timeLeft and boostText:match("%%") and timeLeft:match("%d") then
-				if not luckNotificationSent then
-					luckNotificationSent = true
-					sendServerLuckEmbed(boostText, timeLeft)
+						-- Ignoră text default
+						local defaultTimes = { "4:31:05", "0:00:00", "" }
+						local isDefault = false
+						for _, t in ipairs(defaultTimes) do
+							if timeLeft == t then
+								isDefault = true
+								break
+							end
+						end
+
+						-- Trimite webhook doar dacă boost real și timpul nu e default
+						if boostText:match("%%") and timeLeft:match("%d") and not isDefault then
+							if not luckNotificationSent then
+								luckNotificationSent = true
+								sendServerLuckEmbed(boostText, timeLeft)
+							end
+						end
+					end
 				end
 			end
 		end)
