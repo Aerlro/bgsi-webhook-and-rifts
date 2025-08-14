@@ -104,6 +104,7 @@ local function formatChance(chanceStr)
     if not num or num <= 0 then return chanceStr end
 
     local oneIn = 100 / num
+
     local function approxNumber(n)
         if n >= 1e12 then
             return string.format("%.2fT", n / 1e12)
@@ -118,17 +119,11 @@ local function formatChance(chanceStr)
         end
     end
 
-    local percentStr = ""
-    if oneIn <= 100_000_000 then
-        if num >= 1 then
-            percentStr = tostring(math.floor(num * 100 + 0.5) / 100) .. "%"
-        elseif num >= 0.01 then
-            percentStr = string.format("%.3f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
-        else
-            percentStr = string.format("%.6f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
-        end
-    else
+    local percentStr
+    if oneIn >= 100_000_000 then
         percentStr = string.format("%.0e", num) .. "%"
+    else
+        percentStr = string.format("%.10f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
     end
 
     return string.format("%s (1 in %s)", percentStr, approxNumber(oneIn))
