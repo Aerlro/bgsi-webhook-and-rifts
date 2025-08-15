@@ -196,13 +196,13 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local petCurrencyValue = ""
 
     if boostedStats.Tickets then
-        petCurrencyLabel = "<:ticket:1392626567464747028> Tickets"
+        petCurrencyLabel = "<:ticket:1392626567464747028> **Tickets**"
         petCurrencyValue = abbreviateNumber(boostedStats.Tickets)
     elseif boostedStats.Pearls then
-        petCurrencyLabel = "<:pearls:1403707150513213550> Pearls"
+        petCurrencyLabel = "<:pearls:1403707150513213550> **Pearls**"
         petCurrencyValue = abbreviateNumber(boostedStats.Pearls)
     else
-        petCurrencyLabel = "<:coins:1392626598188154977> Coins"
+        petCurrencyLabel = "<:coins:1392626598188154977> **Coins**"
         petCurrencyValue = abbreviateNumber(boostedStats.Coins or "N/A")
     end
 
