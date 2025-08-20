@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local rs = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local petsModule = require(rs.Shared.Data.Pets)
+local eggsModule = require(rs.Shared.Data.Eggs)
 
 local webhookUrl = "https://discord.com/api/webhooks/1391374778882986035/KzVd6EaiXL73gd2YN_FIIHt-d36SeaKONLqsjPGiTDin65p_KrRBLfwr7saQpbXUZCFI"
 local serverLuckWebhookUrl = "https://discord.com/api/webhooks/1391368932761276436/eUsp8pJMsgzC3APxmw_qN64bWZrWyKEUIZraHTLFLUqi7yh0TMvXWEVBl3AnkHjMSfXi"
@@ -11,8 +12,11 @@ local localPlayer = Players.LocalPlayer
 print("Roblox Name: " .. localPlayer.Name)
 local luckNotificationSent = false
 
-local systemMessageEvent = rs:WaitForChild("Shared"):WaitForChild("Framework")
-    :WaitForChild("Utilities"):WaitForChild("SendSystemMessage"):WaitForChild("RemoteEvent")
+local HatchEvent = rs:WaitForChild("Shared")
+    :WaitForChild("Framework")
+    :WaitForChild("Network")
+    :WaitForChild("Remote")
+    :WaitForChild("RemoteEvent")
 
 local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("PlayerDataChanged")
 local startTime = tick()
@@ -98,35 +102,42 @@ local function abbreviateNumber(num)
     end
 end
 
-local function formatChance(chanceStr)
-    local cleanStr = chanceStr:gsub("%%", "")
+local function formatChance(chanceStr, variant)
+    if not chanceStr or chanceStr == "Unknown" then
+        return "Unknown", math.huge
+    end
+
+    local cleanStr = tostring(chanceStr):gsub("%%", "")
     local num = tonumber(cleanStr)
-    if not num or num <= 0 then return chanceStr end
+    if not num or num <= 0 then return tostring(chanceStr), math.huge end
+
+    if variant == "Shiny" then
+        num = num / 40
+    elseif variant == "Mythic" then
+        num = num / 100
+    elseif variant == "Shiny Mythic" then
+        num = num / 4000
+    end
 
     local oneIn = 100 / num
 
     local function approxNumber(n)
         if n >= 1e12 then
-            return string.format("%.2fT", n / 1e12)
+            return string.format("%.0fT", n / 1e12)
         elseif n >= 1e9 then
-            return string.format("%.2fB", n / 1e9)
+            return string.format("%.0fB", n / 1e9)
         elseif n >= 1e6 then
-            return string.format("%.2fM", n / 1e6)
+            return string.format("%.0fM", n / 1e6)
         elseif n >= 1e3 then
-            return string.format("%.1fK", n / 1e3)
+            return string.format("%.0fK", n / 1e3)
         else
             return tostring(math.floor(n))
         end
     end
 
-    local percentStr
-    if oneIn >= 100_000_000 then
-        percentStr = string.format("%.0e", num) .. "%"
-    else
-        percentStr = string.format("%.10f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
-    end
+    local percentStr = string.format("%.2f%%", num)
 
-    return string.format("%s (1 in %s)", percentStr, approxNumber(oneIn))
+    return string.format("%s (1 in %s)", percentStr, approxNumber(oneIn)), oneIn
 end
 
 local function formatPlaytime()
@@ -143,6 +154,17 @@ local function formatPlaytime()
     table.insert(parts, seconds .. "s")
 
     return table.concat(parts, " ")
+end
+
+local function isSecretBounty(petName)
+    local ok, result = pcall(function()
+        return secretBountyUtil.Get()
+    end)
+
+    if ok and typeof(result) == "table" and result.Name == petName then
+        return true, result
+    end
+    return false, nil
 end
 
 local function getBoostedStats(stats, variant)
@@ -185,6 +207,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         ["Mythic"] = 0x8000FF,
         ["Shiny Mythic"] = 0x00FFFF,
         ["Secret"] = 0xFF0000,
+        ["Secret Bounty"] = 0xFF8800,
         ["Infinity"] = 0xFFFFFF
     }
     local embedColor = colorMap[rarity] or colorMap[variant] or 65280
@@ -196,13 +219,13 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local petCurrencyValue = ""
 
     if boostedStats.Tickets then
-        petCurrencyLabel = "<:ticket:1392626567464747028> **Tickets**"
+        petCurrencyLabel = "<:ticket:1392626567464747028> Tickets"
         petCurrencyValue = tostring(boostedStats.Tickets)
     elseif boostedStats.Pearls then
-        petCurrencyLabel = "<:pearls:1403707150513213550> **Pearls**"
+        petCurrencyLabel = "<:pearls:1403707150513213550> Pearls"
         petCurrencyValue = tostring(boostedStats.Pearls)
     else
-        petCurrencyLabel = "<:coins:1392626598188154977> **Coins**"
+        petCurrencyLabel = "<:coins:1392626598188154977> Coins"
         petCurrencyValue = tostring(boostedStats.Coins or "N/A")
     end
 
@@ -230,7 +253,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 - <:ticket:1392626567464747028> **Tickets:** `%s`
     ]],
         egg or "Unknown",
-        formatChance(dropChance or "Unknown"),
+        dropChance,
         rarity or "Legendary",
         tier or "1",
         boostedStats.Bubbles or "N/A",
@@ -251,7 +274,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     if rarity == "Infinity" then
         titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petName)
         contentText = "@everyone"
-    elseif rarity == "Secret" then
+    elseif rarity == "Secret" or rarity == "Secret Bounty" then
         titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petName)
         contentText = "@everyone"
     else
@@ -278,46 +301,70 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     })
 end
 
-systemMessageEvent.OnClientEvent:Connect(function(message)
-    if typeof(message) ~= "string" then return end
-    if not message:find(localPlayer.Name) then return end
+HatchEvent.OnClientEvent:Connect(function(action, data)
+    if action ~= "HatchEgg" then return end
+    if not data or not data.Pets then return end
 
-    message = message:gsub("<[^>]->", "")
-    local petData, chanceStr = string.match(message, "hatched a (.+) %(([%d%.eE%-]+%%?)%)")
-    if not petData or not chanceStr then return end
+    for _, petInfo in pairs(data.Pets) do
+        local pet = petInfo.Pet
+        if not pet then continue end
 
-    local chanceNum = tonumber(chanceStr:match("[%d%.eE-]+"))
-    if not chanceNum or (100 / chanceNum) < 1_000_000 then
-        return
+        local petName = pet.Name or "Unknown"
+
+        local variant = "Normal"
+        if pet.Shiny and pet.Mythic then
+            variant = "Shiny Mythic"
+        elseif pet.Shiny then
+            variant = "Shiny"
+        elseif pet.Mythic then
+            variant = "Mythic"
+        end
+
+        local petEntry = petsModule[petName]
+        if not petEntry then 
+            warn("⚠️ Pet-ul nu a fost găsit în modul:", petName)
+            continue 
+        end
+
+        local boostedStats = getBoostedStats(petEntry.Stats, variant)
+
+        local eggName = (petEntry.Egg and petEntry.Egg ~= "") and petEntry.Egg or (data.Name or "Unknown")
+
+        local rarity = petEntry.Rarity or "Unknown"
+        local tier = petEntry.Tier or "1"
+
+        local bounty, secret = isSecretBounty(petName)
+        local rawChance
+        if bounty then
+            rarity = "Secret Bounty"
+            if secret then
+                eggName = secret.Egg or eggName
+                rawChance = secret.Chance or petEntry.Chance
+            end
+        else
+            rawChance = petEntry.Chance or "Unknown"
+        end
+
+        local dropChance, oneIn = formatChance(rawChance, variant)
+
+        if oneIn < 1e6 then
+            print(string.format("⏩ Sărit: %s (%s) din %s - doar 1 în %s", petName, variant, eggName, oneIn))
+            continue
+        end
+
+        print(string.format("🎯 Hatch RAR: %s | Variant: %s | Egg: %s | Chance: %s", petName, variant, eggName, dropChance))
+
+        sendDiscordWebhook(
+            localPlayer.Name, 
+            petName, 
+            variant, 
+            boostedStats, 
+            dropChance,
+            eggName,
+            rarity,
+            tier
+        )
     end
-
-    local variant = "Normal"
-    local petName = petData
-
-    if string.find(petData, "Shiny") and string.find(petData, "Mythic") then
-        variant = "Shiny Mythic"
-        petName = petName:gsub("Shiny Mythic ", "")
-    elseif string.find(petData, "Shiny") then
-        variant = "Shiny"
-        petName = petName:gsub("Shiny ", "")
-    elseif string.find(petData, "Mythic") then
-        variant = "Mythic"
-        petName = petName:gsub("Mythic ", "")
-    end
-
-    petName = petName:match("^%s*(.-)%s*$")
-    local petEntry = petsModule[petName]
-    if not petEntry or not petEntry.Stats then
-        warn("⚠️ Pet not found in module:", petName)
-        return
-    end
-
-    local boostedStats = getBoostedStats(petEntry.Stats, variant)
-    local egg = petEntry.Egg or "Unknown"
-    local rarity = petEntry.Rarity or "Legendary"
-    local tier = petEntry.Tier or "1"
-
-    sendDiscordWebhook(localPlayer.Name, petName, variant, boostedStats, chanceStr, egg, rarity, tier)
 end)
 
 local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
@@ -335,7 +382,7 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 		local hours = math.floor(totalSeconds / 3600 * 100) / 100
 
 		if totalSeconds >= 86400 then
-			return string.format("%.0fh", hours) -- afișează doar ore pentru zile
+			return string.format("%.0fh", hours) -- afieaz doar ore pentru zile
 		elseif totalSeconds >= 3600 then
 			return string.format("%.2fh", hours)
 		elseif totalSeconds >= 60 then
@@ -352,7 +399,7 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 	local maxPlayers = 12
 
 	local description = string.format([[
-🍀・**Luck Status**
+🍀・**Luck Status**
 - 🔥 **Boost:** `%s`
 - ⏳ **Time Remaining:** `%s`
 - ⌛ **Hours Left:** `%s`
@@ -397,7 +444,7 @@ task.spawn(function()
 						local boostText = amount.Text
 						local timeLeft = label.Text
 
-						-- Ignoră text default
+						-- Ignor text default
 						local defaultTimes = { "4:31:05", "0:00:00", "" }
 						local isDefault = false
 						for _, t in ipairs(defaultTimes) do
@@ -407,7 +454,7 @@ task.spawn(function()
 							end
 						end
 
-						-- Trimite webhook doar dacă boost real și timpul nu e default
+						-- Trimite webhook doar dac boost real i timpul nu e default
 						if boostText:match("%%") and timeLeft:match("%d") and not isDefault then
 							if not luckNotificationSent then
 								luckNotificationSent = true
@@ -432,22 +479,22 @@ print("✅ Pet notifier & Server Luck activat pentru: " .. localPlayer.Name)
 task.spawn(function()
     local RiftWebhooks = {
         ["bee-egg"] = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["super-chest"] = "https://discord.com/api/webhooks/1391374777981206548/LBpfKoLMiDIjOMLpU_jb_HhPQJ-J5n--U2Ao5PvFzMM2ybzx3eqIJZv1nCz4vb8cjKwn",
-        ["neon-egg"] = "https://discord.com/api/webhooks/1391374778195251210/n4Q2mz6h4rVbGxsJxDkFmZ4nIeyOe8jKybLe-G-2ZfqnTTVBJT4pzNWyESRyReolcQaM",
-        ["cyber-egg"]       = "https://discord.com/api/webhooks/1391374777335156818/4cKl6U8nMjlOVx4NximkLpXqwT73gShGWILiVmEZL7hP5RrdqdRlc9UIaddEiDiT_Nyu",
-        ["void-egg"]        = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9",
-        ["hell-egg"]        = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9",
-        ["crystal-egg"]     = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9",
-        ["royal-chest"]     = "https://discord.com/api/webhooks/1391374773296304200/qwV3xucsLvjS80GiwMPDYqmQopuLwJiVVbGuXkGWLnbAPOOJ6SAKE32FGnRnB97T--mm",
-        ["golden-chest"]    = "https://discord.com/api/webhooks/1391374774189424740/9KZFT5Sn_z6PrLZdFUfg4XOEYv6bBlVw2ekMtilHJ3I7RircHotDyT_9KNlv7kkI6iny",
-        ["nightmare-egg"]   = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9",
-        ["dice-rift"]       = "https://discord.com/api/webhooks/1391374774617505912/fuAXY-6soaocZ7GE1lK1Hd97crjdx3wvo2hszKJnpQSPJ4K3vRUw2bAzLQ_prjpt5vl7",
-        ["mining-egg"]      = "https://discord.com/api/webhooks/1391374777826021406/POnyWa2YhIYIN2CqaeVswxaL8wveGMfDT94yVk2BuOQDdYw4Z-4Z-EYiSZnhUCG6iLgw",
+        ["super-chest"] = "https://discord.com/api/webhooks/1407847409450487829/G2T6NlRwrZecqXI4lxCp0VtT_1_bWn6CnENY2pUbj3rOW3n65MZE1_ZJ2lDsCPWcnKIG",
+        ["neon-egg"] = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["cyber-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["void-egg"]        = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["hell-egg"]        = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["crystal-egg"]     = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["royal-chest"]     = "https://discord.com/api/webhooks/1407847449594167306/sgv7c3PLn29bK1R4VCD4zLFyoijy0m3OSvRzcmB38cGyicfYLvKsp9nMUgjhiXQ6PjKp",
+        ["golden-chest"]    = "https://discord.com/api/webhooks/1407847526928744529/t2EFKD7KPttgcaiZVRzRjw4WO6w2NZUj_n1x_Y7c4bSc0BB1y5YxzBK75PwAPEmCnuXG",
+        ["nightmare-egg"]   = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["dice-rift"]       = "https://discord.com/api/webhooks/1407847452543025332/8wt1564_dILYw6Ncwpdf6qGm625JBYWObTXrAvg3G3no2FZdii3wI97U0k5tzThrkYbc",
+        ["mining-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
         ["bubble-rift"]     = "https://discord.com/api/webhooks/1391374774734946374/JK3ertej6d3Dkcp2zhXbGLJpFXHC4RRhJNGs-3UPmsV_vm4-2m-V4mGzAClLB0jOk4_o",
-        ["spikey-egg"]      = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9",
-        ["magma-egg"]       = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9",
-        ["rainbow-egg"]     = "https://discord.com/api/webhooks/1391374772822081536/T1WM9qtMDNiyUsbicJ0fwVtg8Gt_DXlCuRKkswQh2lh4WyCXgT78GJ5EBIO-J-rPZEjL",
-        ["lunar-egg"]       = "https://discord.com/api/webhooks/1391374778832519219/99_q4mMSFaxJJuhXiTAmImdgWhU9pwcOyebXiFuIhy-D6u0OhMaOCwRDXsZNER2GLDf9"
+        ["spikey-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["magma-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["rainbow-egg"]     = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["lunar-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA"
     }
 
     local RiftThumbnails = {
@@ -520,11 +567,11 @@ task.spawn(function()
                 local thumbnail_url = RiftThumbnails[rift.Name] or ""
 
                 local riftInfo = {
-                    "・**Server Info**",
+                    "**Server Info**",
                     "- **Players:** " .. tostring(player_count) .. "/12",
                     "- **Join Link:** [Click Here](" .. join_link .. ")",
                     "",
-                    "・**Rift Info**"
+                    "**Rift Info**"
                 }
 
                 if multiplier then
@@ -563,7 +610,7 @@ task.spawn(function()
                         })
                     end)
                 else
-                    warn("Executorul nu suportă request-uri.")
+                    warn("Executorul nu suport request-uri.")
                 end
             end
         end
