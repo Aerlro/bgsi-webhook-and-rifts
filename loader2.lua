@@ -5,7 +5,7 @@ local RunService = game:GetService("RunService")
 local petsModule = require(rs.Shared.Data.Pets)
 local eggsModule = require(rs.Shared.Data.Eggs)
 
-local webhookUrl = "https://discord.com/api/webhooks/1391374778882986035/KzVd6EaiXL73gd2YN_FIIHt-d36SeaKONLqsjPGiTDin65p_KrRBLfwr7saQpbXUZCFI"
+local webhookUrl = "https://discord.com/api/webhooks/1391368203669868636/hPdL1Q3YDzZb4hvlT7fOi3f3YE5VX3j2B-OeBPJvP8Z8YDz44QoY_azGUSdCtlEyS0IT"
 local serverLuckWebhookUrl = "https://discord.com/api/webhooks/1391368932761276436/eUsp8pJMsgzC3APxmw_qN64bWZrWyKEUIZraHTLFLUqi7yh0TMvXWEVBl3AnkHjMSfXi"
 
 local localPlayer = Players.LocalPlayer
@@ -103,14 +103,16 @@ local function abbreviateNumber(num)
 end
 
 local function formatChance(chanceStr, variant)
-    if not chanceStr or chanceStr == "Unknown" then
-        return "Unknown", math.huge
-    end
+    if not chanceStr then return "Unknown", math.huge end
 
+    -- scoatem semnul %
     local cleanStr = tostring(chanceStr):gsub("%%", "")
     local num = tonumber(cleanStr)
-    if not num or num <= 0 then return tostring(chanceStr), math.huge end
+    if not num or num <= 0 then 
+        return tostring(chanceStr), math.huge 
+    end
 
+    -- aplicăm multiplicatori în funcție de variantă
     if variant == "Shiny" then
         num = num / 40
     elseif variant == "Mythic" then
@@ -119,23 +121,31 @@ local function formatChance(chanceStr, variant)
         num = num / 4000
     end
 
+    -- calculăm 1 în X
     local oneIn = 100 / num
 
+    -- funcție de scurtare numere mari cu 2 zecimale
     local function approxNumber(n)
         if n >= 1e12 then
-            return string.format("%.0fT", n / 1e12)
+            return string.format("%.2fT", n / 1e12)
         elseif n >= 1e9 then
-            return string.format("%.0fB", n / 1e9)
+            return string.format("%.2fB", n / 1e9)
         elseif n >= 1e6 then
-            return string.format("%.0fM", n / 1e6)
+            return string.format("%.2fM", n / 1e6)
         elseif n >= 1e3 then
-            return string.format("%.0fK", n / 1e3)
+            return string.format("%.2fK", n / 1e3)
         else
-            return tostring(math.floor(n))
+            return string.format("%.2f", n)
         end
     end
 
-    local percentStr = string.format("%.2f%%", num)
+    -- procent formatat
+    local percentStr
+    if oneIn >= 100_000_000 then
+        percentStr = string.format("%.0e", num) .. "%"
+    else
+        percentStr = string.format("%.10f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
+    end
 
     return string.format("%s (1 in %s)", percentStr, approxNumber(oneIn)), oneIn
 end
@@ -215,9 +225,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
 
-    local petCurrencyLabel = ""
-    local petCurrencyValue = ""
-
+    local petCurrencyLabel, petCurrencyValue = "", ""
     if boostedStats.Tickets then
         petCurrencyLabel = "<:ticket:1392626567464747028> Tickets"
         petCurrencyValue = tostring(boostedStats.Tickets)
@@ -232,6 +240,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local userCoins = abbreviateNumber(getCurrencyAmount("Coins") or coins)
     local userPearls = abbreviateNumber(getCurrencyAmount("Pearls") or pearls)
 
+    -- 📌 descriere embed
     local description = string.format([[
 🎉・**Hatch Info**
 - 🥚 **Egg:** `%s`
@@ -255,7 +264,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         egg or "Unknown",
         dropChance,
         rarity or "Legendary",
-        tier or "1",
+        tostring(tier or "1"),
         boostedStats.Bubbles or "N/A",
         boostedStats.Gems or "N/A",
         petCurrencyLabel,
@@ -268,9 +277,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         abbreviateNumber(getCurrencyAmount("Tickets") or tickets)
     )
 
-    local titleText = ""
-    local contentText = ""
-
+    local titleText, contentText = "", ""
     if rarity == "Infinity" then
         titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petName)
         contentText = "@everyone"
@@ -311,6 +318,7 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
 
         local petName = pet.Name or "Unknown"
 
+        -- determinăm varianta
         local variant = "Normal"
         if pet.Shiny and pet.Mythic then
             variant = "Shiny Mythic"
@@ -322,17 +330,24 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
 
         local petEntry = petsModule[petName]
         if not petEntry then 
-            warn("⚠️ Pet-ul nu a fost găsit în modul:", petName)
             continue 
         end
 
         local boostedStats = getBoostedStats(petEntry.Stats, variant)
 
-        local eggName = (petEntry.Egg and petEntry.Egg ~= "") and petEntry.Egg or (data.Name or "Unknown")
+        -- 🥚 Egg: dacă vine din Infinity Egg, folosim oul REAL din petEntry
+        local eggName
+        if data.Name == "Infinity Egg" then
+            eggName = petEntry.Egg or "Unknown"
+        else
+            eggName = eggsModule[data.Name] and eggsModule[data.Name].Name or data.Name or "Unknown"
+        end
 
+        -- 🎁 rarity și tier corecte
         local rarity = petEntry.Rarity or "Unknown"
-        local tier = petEntry.Tier or "1"
+        local tier = petEntry.Tier or 1
 
+        -- Secret Bounty?
         local bounty, secret = isSecretBounty(petName)
         local rawChance
         if bounty then
@@ -345,14 +360,13 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
             rawChance = petEntry.Chance or "Unknown"
         end
 
+        -- 🎲 șansa reală
         local dropChance, oneIn = formatChance(rawChance, variant)
 
+        -- 🔎 Filtru: doar cele 1 în 1M+
         if oneIn < 1e6 then
-            print(string.format("⏩ Sărit: %s (%s) din %s - doar 1 în %s", petName, variant, eggName, oneIn))
             continue
         end
-
-        print(string.format("🎯 Hatch RAR: %s | Variant: %s | Egg: %s | Chance: %s", petName, variant, eggName, dropChance))
 
         sendDiscordWebhook(
             localPlayer.Name, 
@@ -360,9 +374,9 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
             variant, 
             boostedStats, 
             dropChance,
-            eggName,
-            rarity,
-            tier
+            eggName,  
+            rarity,   
+            tier      
         )
     end
 end)
