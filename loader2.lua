@@ -5,7 +5,7 @@ local RunService = game:GetService("RunService")
 local petsModule = require(rs.Shared.Data.Pets)
 local eggsModule = require(rs.Shared.Data.Eggs)
 
-local webhookUrl = "https://discord.com/api/webhooks/1391368203669868636/hPdL1Q3YDzZb4hvlT7fOi3f3YE5VX3j2B-OeBPJvP8Z8YDz44QoY_azGUSdCtlEyS0IT"
+local webhookUrl = "https://discord.com/api/webhooks/1391374778882986035/KzVd6EaiXL73gd2YN_FIIHt-d36SeaKONLqsjPGiTDin65p_KrRBLfwr7saQpbXUZCFI"
 local serverLuckWebhookUrl = "https://discord.com/api/webhooks/1391368932761276436/eUsp8pJMsgzC3APxmw_qN64bWZrWyKEUIZraHTLFLUqi7yh0TMvXWEVBl3AnkHjMSfXi"
 
 local localPlayer = Players.LocalPlayer
