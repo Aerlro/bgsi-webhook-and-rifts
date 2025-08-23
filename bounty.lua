@@ -9,14 +9,14 @@ local secretBountyUtil = require(ReplicatedStorage.Shared.Utils.Stats:WaitForChi
 
 -- Imagini pentru pet-uri
 local petImages = {
-    ["Giant D.I.Y Robot"] = "https://static.wikia.nocookie.net/bgs-infinity/images/2/2d/Giant_D.I.Y_Robot.png/revision/latest?cb=20250727223840",
-    ["Gumdrop King"] = "https://static.wikia.nocookie.net/bgs-infinity/images/8/89/Gumdrop_King.png/revision/latest?cb=20250727223840",
+    ["Ethereal One"] = "https://static.wikia.nocookie.net/bgs-infinity/images/d/d7/Ethereal_One.png/revision/latest?cb=20250823024033",
+    ["Moonlit Gaze"] = "https://static.wikia.nocookie.net/bgs-infinity/images/d/dc/Moonlit_Gaze.png/revision/latest?cb=20250823024218",
 }
 
 -- Șanse fixe pentru embed
 local petChances = {
-    ["Gumdrop King"] = "1 in 80,000,000",
-    ["Giant D.I.Y Robot"] = "1 in 250,000,000"
+    ["Ethereal One"] = "1 in 200,000,000",
+    ["Moonlit Gaze"] = "1 in 400,000,000"
 }
 
 -- Obține bounty actual
@@ -32,9 +32,7 @@ local function sendBountyEmbed()
     local now = os.time()
     local tomorrow = os.date("!*t", now)
     tomorrow.day = tomorrow.day + 1
-    tomorrow.hour = 0
-    tomorrow.min = 0
-    tomorrow.sec = 0
+    tomorrow.hour, tomorrow.min, tomorrow.sec = 0, 0, 0
     local nextBountyTime = os.time(tomorrow)
 
     local embed = {
