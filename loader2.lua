@@ -141,7 +141,7 @@ local function formatChance(chanceStr, variant)
 
     -- procent formatat
     local percentStr
-    if oneIn >= 100_000_000 then
+    if oneIn >= 100_000_001 then
         percentStr = string.format("%.0e", num) .. "%"
     else
         percentStr = string.format("%.10f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
