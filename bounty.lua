@@ -28,7 +28,7 @@ local function formatChance(chance)
     if not chance or chance <= 0 then
         return "N/A"
     end
-    local inv = math.floor((1 / chance) * 100 + 0.5) -- 1/x * 100
+    local inv = math.floor((1 / chance) * 100 + 0.5)
     return "1 in " .. formatNumber(inv)
 end
 
@@ -52,30 +52,12 @@ local function sendBountyEmbed()
         title = "🎯 Secret Bounty",
         color = 16777215,
         fields = {
-            {
-                name = "Pet",
-                value = current.Name,
-                inline = true
-            },
-            {
-                name = "Egg",
-                value = current.Egg,
-                inline = true
-            },
-            {
-                name = "Chance",
-                value = chanceFormatted,
-                inline = true
-            },
-            {
-                name = "Next",
-                value = string.format("<t:%d:R>", tomorrowMidnightUTC),
-                inline = false
-            }
+            { name = "Pet", value = current.Name, inline = true },
+            { name = "Egg", value = current.Egg, inline = true },
+            { name = "Chance", value = chanceFormatted, inline = true },
+            { name = "Next", value = string.format("<t:%d:R>", tomorrowMidnightUTC), inline = false }
         },
-        image = {
-            url = petImage or ""
-        },
+        image = { url = petImage or "" },
         timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ", now)
     }
 
@@ -89,27 +71,36 @@ local function sendBountyEmbed()
     })
 end
 
--- === Trimite imediat la start
+-- === La pornire trimite embed-ul imediat
 sendBountyEmbed()
 
--- === Calculează cât timp până la următorul 00:00 UTC
-local now = os.time()
-local todayUTC = os.date("!*t", now)
-todayUTC.hour, todayUTC.min, todayUTC.sec = 0,0,0
-local midnightUTC = os.time(todayUTC)
-
-if now >= midnightUTC then
-    midnightUTC = midnightUTC + 86400 -- dacă a trecut, mergem la următoarea zi
-end
-
-local waitUntilMidnight = midnightUTC - now
-task.wait(waitUntilMidnight)
-
--- === Trimite exact la 00:00 UTC (03:00 România)
-sendBountyEmbed()
-
--- === De aici rulează la fiecare 24h fix
+-- === Apoi calculează cât timp e până la ora 03:00 România (00:00 UTC)
 while true do
-    task.wait(86400)
+    local now = os.time()
+    local utcNow = os.date("!*t", now)
+
+    -- calculăm următorul 00:00 UTC
+    local nextMidnightUTC = os.time({
+        year = utcNow.year,
+        month = utcNow.month,
+        day = utcNow.day,
+        hour = 0,
+        min = 0,
+        sec = 0
+    })
+    if nextMidnightUTC <= now then
+        nextMidnightUTC = nextMidnightUTC + 86400
+    end
+
+    local secondsToWait = nextMidnightUTC - now
+    task.wait(secondsToWait)
+
+    -- Trimite fix la 03:00 România
     sendBountyEmbed()
+
+    -- După aceea, rulează la fiecare 24h
+    while true do
+        task.wait(86400)
+        sendBountyEmbed()
+    end
 end
