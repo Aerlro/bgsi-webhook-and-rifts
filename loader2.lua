@@ -4,9 +4,11 @@ local rs = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local petsModule = require(rs.Shared.Data.Pets)
 local eggsModule = require(rs.Shared.Data.Eggs)
+local secretBountyUtil = require(rs.Shared.Utils.Stats.SecretBountyUtil)
 
 local webhookUrl = "https://discord.com/api/webhooks/1391374778882986035/KzVd6EaiXL73gd2YN_FIIHt-d36SeaKONLqsjPGiTDin65p_KrRBLfwr7saQpbXUZCFI"
 local serverLuckWebhookUrl = "https://discord.com/api/webhooks/1391368932761276436/eUsp8pJMsgzC3APxmw_qN64bWZrWyKEUIZraHTLFLUqi7yh0TMvXWEVBl3AnkHjMSfXi"
+local bountyWebhook = "https://discord.com/api/webhooks/1407847455902662768/xWn94IDXW-ExWhJ0JGX5GF9Uefa9vOAzea2qNMJKVMbKq9yXE9ZHiLxFNX_dpft_XB1S"
 
 local localPlayer = Players.LocalPlayer
 print("Roblox Name: " .. localPlayer.Name)
@@ -85,6 +87,25 @@ if remote then
     end)
 end
 
+local function getBountyPetImageLink(petName)
+    local petEntry = petsModule[petName]
+    if not petEntry or not petEntry.Images then return nil end
+    local assetStr = petEntry.Images["Normal"]
+    local assetId = assetStr and assetStr:match("%d+")
+    return assetId and ("https://ps99.biggamesapi.io/image/" .. assetId) or nil
+end
+
+local function formatBountyNumber(n)
+    local str = tostring(math.floor(n))
+    return str:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", "")
+end
+
+local function formatBountyChance(chance)
+    if not chance or chance <= 0 then return "N/A" end
+    local inv = math.floor((1 / chance) * 100 + 0.5)
+    return "1 in " .. formatBountyNumber(inv)
+end
+
 local function abbreviateNumber(num)
     num = tonumber(num) or 0
     local absNum = math.abs(num)
@@ -141,7 +162,7 @@ local function formatChance(chanceStr, variant)
 
     -- procent formatat
     local percentStr
-    if oneIn >= 100_000_001 then
+    if oneIn >= 100_000_000 then
         percentStr = string.format("%.0e", num) .. "%"
     else
         percentStr = string.format("%.10f", num):gsub("0+$", ""):gsub("%.$", "") .. "%"
@@ -209,6 +230,76 @@ local function getPetImageLink(petName, variant)
     local assetId = assetStr and assetStr:match("%d+")
     return assetId and ("https://ps99.biggamesapi.io/image/" .. assetId) or nil
 end
+
+local function sendBountyEmbed()
+    local current = secretBountyUtil:Get()
+    if not current then return end
+
+    local chanceFormatted = formatBountyChance(current.Chance)
+    local petImage = getBountyPetImageLink(current.Name)
+
+    -- calculăm "next" (următorul reset la 00:00 UTC)
+    local now = os.time()
+    local tomorrowMidnightUTC = os.time(os.date("!*t", now))
+    tomorrowMidnightUTC = tomorrowMidnightUTC - (tomorrowMidnightUTC % 86400) + 86400
+
+    local embed = {
+        title = "🎯 Secret Bounty",
+        color = 16777215,
+        fields = {
+            { name = "Pet", value = current.Name, inline = true },
+            { name = "Egg", value = current.Egg, inline = true },
+            { name = "Chance", value = chanceFormatted, inline = true },
+            { name = "Next", value = string.format("<t:%d:R>", tomorrowMidnightUTC), inline = false }
+        },
+        image = { url = petImage or "" },
+        timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ", now)
+    }
+
+    local payload = HttpService:JSONEncode({ embeds = { embed } })
+
+    http_request({
+        Url = bountyWebhook,
+        Method = "POST",
+        Headers = { ["Content-Type"] = "application/json" },
+        Body = payload
+    })
+end
+
+-- rulează în paralel cu scriptul mare
+coroutine.wrap(function()
+    -- trimite imediat la pornire
+    sendBountyEmbed()
+
+    while true do
+        local now = os.time()
+        local utcNow = os.date("!*t", now)
+
+        local nextMidnightUTC = os.time({
+            year = utcNow.year,
+            month = utcNow.month,
+            day = utcNow.day,
+            hour = 0,
+            min = 0,
+            sec = 0
+        })
+        if nextMidnightUTC <= now then
+            nextMidnightUTC = nextMidnightUTC + 86400
+        end
+
+        local secondsToWait = nextMidnightUTC - now
+        task.wait(secondsToWait)
+
+        -- la fix 00:00 UTC (03:00 România)
+        sendBountyEmbed()
+
+        -- după aceea, la fiecare 24h
+        while true do
+            task.wait(86400)
+            sendBountyEmbed()
+        end
+    end
+end)()
 
 local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dropChance, egg, rarity, tier)
     local colorMap = {
