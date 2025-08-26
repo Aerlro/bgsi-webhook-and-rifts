@@ -331,6 +331,12 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local userCoins = abbreviateNumber(getCurrencyAmount("Coins") or coins)
     local userPearls = abbreviateNumber(getCurrencyAmount("Pearls") or pearls)
 
+    -- 📌 nume final cu variantă (Shiny/Mythic etc.)
+    local displayPetName = petName
+    if variant ~= "Normal" then
+        displayPetName = variant .. " " .. petName
+    end
+
     -- 📌 descriere embed
     local description = string.format([[
 🎉・**Hatch Info**
@@ -368,15 +374,22 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         abbreviateNumber(getCurrencyAmount("Tickets") or tickets)
     )
 
+    -- 📌 titlu și content în funcție de raritate
     local titleText, contentText = "", ""
+
+    -- prefix pt content (Normal/Shiny/Mythic/Shiny Mythic)
+    local variantPrefix = (variant ~= "Normal") and variant:upper() .. " " or "NORMAL "
+    -- raritatea în content (SECRET / SECRET BOUNTY / INFINITY)
+    local contentRarity = rarity:upper()
+
     if rarity == "Infinity" then
-        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, petName)
-        contentText = "@everyone"
+        titleText = string.format("DAMN! ||%s|| hatched a %s! Unbelievable!", playerName, displayPetName)
+        contentText = "@everyone " .. variantPrefix .. contentRarity .. "!"
     elseif rarity == "Secret" or rarity == "Secret Bounty" then
-        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, petName)
-        contentText = "@everyone"
+        titleText = string.format("WOW! ||%s|| hatched a %s! Lucky Guy!", playerName, displayPetName)
+        contentText = "@everyone " .. variantPrefix .. contentRarity .. "!"
     else
-        titleText = string.format("||%s|| hatched a %s%s", playerName, variant ~= "Normal" and (variant .. " ") or "", petName)
+        titleText = string.format("||%s|| hatched a %s", playerName, displayPetName)
     end
 
     http_request({
