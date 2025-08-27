@@ -126,14 +126,12 @@ end
 local function formatChance(chanceStr, variant)
     if not chanceStr then return "Unknown", math.huge end
 
-    -- scoatem semnul %
     local cleanStr = tostring(chanceStr):gsub("%%", "")
     local num = tonumber(cleanStr)
     if not num or num <= 0 then 
         return tostring(chanceStr), math.huge 
     end
 
-    -- aplicăm multiplicatori în funcție de variantă
     if variant == "Shiny" then
         num = num / 40
     elseif variant == "Mythic" then
@@ -142,10 +140,8 @@ local function formatChance(chanceStr, variant)
         num = num / 4000
     end
 
-    -- calculăm 1 în X
     local oneIn = 100 / num
 
-    -- funcție de scurtare numere mari cu 2 zecimale
     local function approxNumber(n)
         if n >= 1e12 then
             return string.format("%.2fT", n / 1e12)
@@ -160,7 +156,6 @@ local function formatChance(chanceStr, variant)
         end
     end
 
-    -- procent formatat
     local percentStr
     if oneIn >= 100_000_000 then
         percentStr = string.format("%.0e", num) .. "%"
@@ -198,6 +193,12 @@ local function isSecretBounty(petName)
     return false, nil
 end
 
+local lastSentDate = nil
+local function getDateKey()
+    local now = os.date("!*t")
+    return string.format("%04d-%02d-%02d", now.year, now.month, now.day)
+end
+
 local function getBoostedStats(stats, variant)
     local multiplier = 1
     if variant == "Shiny" then multiplier = 1.5
@@ -232,13 +233,17 @@ local function getPetImageLink(petName, variant)
 end
 
 local function sendBountyEmbed()
+    local today = getDateKey()
+    if lastSentDate == today then
+        return
+    end
+
     local current = secretBountyUtil:Get()
     if not current then return end
 
     local chanceFormatted = formatBountyChance(current.Chance)
     local petImage = getBountyPetImageLink(current.Name)
 
-    -- calculăm "next" (următorul reset la 00:00 UTC)
     local now = os.time()
     local tomorrowMidnightUTC = os.time(os.date("!*t", now))
     tomorrowMidnightUTC = tomorrowMidnightUTC - (tomorrowMidnightUTC % 86400) + 86400
@@ -264,13 +269,11 @@ local function sendBountyEmbed()
         Headers = { ["Content-Type"] = "application/json" },
         Body = payload
     })
+
+    lastSentDate = today
 end
 
--- rulează în paralel cu scriptul mare
 coroutine.wrap(function()
-    -- trimite imediat la pornire
-    sendBountyEmbed()
-
     while true do
         local now = os.time()
         local utcNow = os.date("!*t", now)
@@ -288,12 +291,12 @@ coroutine.wrap(function()
         end
 
         local secondsToWait = nextMidnightUTC - now
+        print("Aștept " .. secondsToWait .. "s până la 00:00 UTC (03:00 România)")
+
         task.wait(secondsToWait)
 
-        -- la fix 00:00 UTC (03:00 România)
         sendBountyEmbed()
 
-        -- după aceea, la fiecare 24h
         while true do
             task.wait(86400)
             sendBountyEmbed()
@@ -331,13 +334,11 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
     local userCoins = abbreviateNumber(getCurrencyAmount("Coins") or coins)
     local userPearls = abbreviateNumber(getCurrencyAmount("Pearls") or pearls)
 
-    -- 📌 nume final cu variantă (Shiny/Mythic etc.)
     local displayPetName = petName
     if variant ~= "Normal" then
         displayPetName = variant .. " " .. petName
     end
 
-    -- 📌 descriere embed
     local description = string.format([[
 🎉・**Hatch Info**
 - 🥚 **Egg:** `%s`
@@ -374,12 +375,10 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         abbreviateNumber(getCurrencyAmount("Tickets") or tickets)
     )
 
-    -- 📌 titlu și content în funcție de raritate
     local titleText, contentText = "", ""
 
-    -- prefix pt content (Normal/Shiny/Mythic/Shiny Mythic)
     local variantPrefix = (variant ~= "Normal") and variant:upper() .. " " or "NORMAL "
-    -- raritatea în content (SECRET / SECRET BOUNTY / INFINITY)
+
     local contentRarity = rarity:upper()
 
     if rarity == "Infinity" then
@@ -422,7 +421,6 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
 
         local petName = pet.Name or "Unknown"
 
-        -- determinăm varianta
         local variant = "Normal"
         if pet.Shiny and pet.Mythic then
             variant = "Shiny Mythic"
@@ -439,7 +437,6 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
 
         local boostedStats = getBoostedStats(petEntry.Stats, variant)
 
-        -- 🥚 Egg: dacă vine din Infinity Egg, folosim oul REAL din petEntry
         local eggName
         if data.Name == "Infinity Egg" then
             eggName = petEntry.Egg or "Unknown"
@@ -447,11 +444,9 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
             eggName = eggsModule[data.Name] and eggsModule[data.Name].Name or data.Name or "Unknown"
         end
 
-        -- 🎁 rarity și tier corecte
         local rarity = petEntry.Rarity or "Unknown"
         local tier = petEntry.Tier or 1
 
-        -- Secret Bounty?
         local bounty, secret = isSecretBounty(petName)
         local rawChance
         if bounty then
@@ -464,10 +459,8 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
             rawChance = petEntry.Chance or "Unknown"
         end
 
-        -- 🎲 șansa reală
         local dropChance, oneIn = formatChance(rawChance, variant)
 
-        -- 🔎 Filtru: doar cele 1 în 1M+
         if oneIn < 1e6 then
             continue
         end
@@ -572,7 +565,6 @@ task.spawn(function()
 							end
 						end
 
-						-- Trimite webhook doar dac boost real i timpul nu e default
 						if boostText:match("%%") and timeLeft:match("%d") and not isDefault then
 							if not luckNotificationSent then
 								luckNotificationSent = true
