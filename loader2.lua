@@ -412,7 +412,7 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
 end
 
 HatchEvent.OnClientEvent:Connect(function(action, data)
-    if action ~= "HatchEgg" then return end
+    if action ~= "HatchEgg" and action ~= "ExclusiveHatch" then return end
     if not data or not data.Pets then return end
 
     for _, petInfo in pairs(data.Pets) do
@@ -420,7 +420,6 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
         if not pet then continue end
 
         local petName = pet.Name or "Unknown"
-
         local variant = "Normal"
         if pet.Shiny and pet.Mythic then
             variant = "Shiny Mythic"
@@ -431,17 +430,19 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
         end
 
         local petEntry = petsModule[petName]
-        if not petEntry then 
-            continue 
-        end
+        if not petEntry then continue end
 
         local boostedStats = getBoostedStats(petEntry.Stats, variant)
 
         local eggName
-        if data.Name == "Infinity Egg" then
-            eggName = petEntry.Egg or "Unknown"
+        if action == "ExclusiveHatch" then
+            eggName = petInfo.EggName or petEntry.Egg or "Unknown Egg"
         else
-            eggName = eggsModule[data.Name] and eggsModule[data.Name].Name or data.Name or "Unknown"
+            if data.Name == "Infinity Egg" then
+                eggName = petEntry.Egg or "Unknown"
+            else
+                eggName = eggsModule[data.Name] and eggsModule[data.Name].Name or data.Name or "Unknown"
+            end
         end
 
         local rarity = petEntry.Rarity or "Unknown"
@@ -461,8 +462,14 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
 
         local dropChance, oneIn = formatChance(rawChance, variant)
 
-        if oneIn < 1e6 then
-            continue
+        if action == "ExclusiveHatch" then
+            if oneIn < 500 then
+                continue
+            end
+        else
+            if oneIn < 1e6 then
+                continue
+            end
         end
 
         sendDiscordWebhook(
