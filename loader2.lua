@@ -26,27 +26,27 @@ local coins, gems, tickets, pearls = "N/A", "N/A", "N/A", "N/A"
 local totalHatches = 0
 
 local function getCurrencyAmount(currencyName)
-	local success, result = pcall(function()
-		local label = localPlayer:WaitForChild("PlayerGui")
-			:WaitForChild("ScreenGui")
-			:WaitForChild("HUD")
-			:WaitForChild("Left")
-			:WaitForChild("Currency")
-			:WaitForChild(currencyName)
-			:WaitForChild("Frame")
-			:WaitForChild("Label")
+        local success, result = pcall(function()
+                local label = localPlayer:WaitForChild("PlayerGui")
+                        :WaitForChild("ScreenGui")
+                        :WaitForChild("HUD")
+                        :WaitForChild("Left")
+                        :WaitForChild("Currency")
+                        :WaitForChild(currencyName)
+                        :WaitForChild("Frame")
+                        :WaitForChild("Label")
 
-		local text = label.Text
-		local cleanText = text:gsub(",", "")
-		local number = tonumber(cleanText)
-		return number
-	end)
+                local text = label.Text
+                local cleanText = text:gsub(",", "")
+                local number = tonumber(cleanText)
+                return number
+        end)
 
-	if success then
-		return result
-	else
-		return nil
-	end
+        if success then
+                return result
+        else
+                return nil
+        end
 end
 
 coroutine.wrap(function()
@@ -486,38 +486,38 @@ HatchEvent.OnClientEvent:Connect(function(action, data)
 end)
 
 local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
-	local function parseTimeStringToSeconds(text)
-		text = text:lower()
-		local d = tonumber(text:match("(%d+)%s*day")) or 0
-		local h, m, s = text:match("(%d+):(%d+):?(%d*)")
-		h = tonumber(h) or 0
-		m = tonumber(m) or 0
-		s = tonumber(s) or 0
-		return d * 86400 + h * 3600 + m * 60 + s
-	end
+        local function parseTimeStringToSeconds(text)
+                text = text:lower()
+                local d = tonumber(text:match("(%d+)%s*day")) or 0
+                local h, m, s = text:match("(%d+):(%d+):?(%d*)")
+                h = tonumber(h) or 0
+                m = tonumber(m) or 0
+                s = tonumber(s) or 0
+                return d * 86400 + h * 3600 + m * 60 + s
+        end
 
-	local function formatTimeAuto(totalSeconds)
-		local hours = math.floor(totalSeconds / 3600 * 100) / 100
+        local function formatTimeAuto(totalSeconds)
+                local hours = math.floor(totalSeconds / 3600 * 100) / 100
 
-		if totalSeconds >= 86400 then
-			return string.format("%.0fh", hours) -- afieaz doar ore pentru zile
-		elseif totalSeconds >= 3600 then
-			return string.format("%.2fh", hours)
-		elseif totalSeconds >= 60 then
-			local minutes = math.floor(totalSeconds / 60 * 100) / 100
-			return string.format("%.2fm", minutes)
-		else
-			return string.format("%ds", totalSeconds)
-		end
-	end
+                if totalSeconds >= 86400 then
+                        return string.format("%.0fh", hours) -- afieaz doar ore pentru zile
+                elseif totalSeconds >= 3600 then
+                        return string.format("%.2fh", hours)
+                elseif totalSeconds >= 60 then
+                        local minutes = math.floor(totalSeconds / 60 * 100) / 100
+                        return string.format("%.2fm", minutes)
+                else
+                        return string.format("%ds", totalSeconds)
+                end
+        end
 
-	local converted = formatTimeAuto(parseTimeStringToSeconds(rawTimeLeft))
-	local joinLink = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
-	local currentPlayers = #Players:GetPlayers()
-	local maxPlayers = 12
+        local converted = formatTimeAuto(parseTimeStringToSeconds(rawTimeLeft))
+        local joinLink = "https://fern.wtf/joiner?placeId=" .. game.PlaceId .. "&gameInstanceId=" .. game.JobId
+        local currentPlayers = #Players:GetPlayers()
+        local maxPlayers = 12
 
-	local description = string.format([[
-🍀・**Luck Status**
+        local description = string.format([[
+🍀・**Luck Status**
 - 🔥 **Boost:** `%s`
 - ⏳ **Time Remaining:** `%s`
 - ⌛ **Hours Left:** `%s`
@@ -525,113 +525,191 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
 - 🔗 **Join Link:** [Click Here](%s)
 ]], boostPercent, rawTimeLeft, converted, currentPlayers, maxPlayers, joinLink)
 
-	local payload = {
-		content = "",
-		embeds = {{
-			author = {
-				name = "aerlrobos",
-				icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
-			},
-			title = "ServerLuck Found!",
-			description = description,
-			color = tonumber("2F3136", 16)
-		}}
-	}
+        local payload = {
+                content = "",
+                embeds = {{
+                        author = {
+                                name = "aerlrobos",
+                                icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
+                        },
+                        title = "ServerLuck Found!",
+                        description = description,
+                        color = tonumber("2F3136", 16)
+                }}
+        }
 
-	http_request({
-		Url = serverLuckWebhookUrl,
-		Method = "POST",
-		Headers = { ["Content-Type"] = "application/json" },
-		Body = HttpService:JSONEncode(payload)
-	})
+        http_request({
+                Url = serverLuckWebhookUrl,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode(payload)
+        })
 end
 
 task.spawn(function()
-	while not luckNotificationSent do
-		local success, result = pcall(function()
-			local buffs = localPlayer:WaitForChild("PlayerGui"):WaitForChild("ScreenGui"):WaitForChild("Buffs")
-			local serverLuck = buffs:FindFirstChild("ServerLuck")
+        while not luckNotificationSent do
+                local success, result = pcall(function()
+                        local buffs = localPlayer:WaitForChild("PlayerGui"):WaitForChild("ScreenGui"):WaitForChild("Buffs")
+                        local serverLuck = buffs:FindFirstChild("ServerLuck")
 
-			if serverLuck then
-				local button = serverLuck:FindFirstChild("Button")
-				if button then
-					local amount = button:FindFirstChild("Amount")
-					local label = button:FindFirstChild("Label")
+                        if serverLuck then
+                                local button = serverLuck:FindFirstChild("Button")
+                                if button then
+                                        local amount = button:FindFirstChild("Amount")
+                                        local label = button:FindFirstChild("Label")
 
-					if amount and label and amount:IsA("TextLabel") and label:IsA("TextLabel") then
-						local boostText = amount.Text
-						local timeLeft = label.Text
+                                        if amount and label and amount:IsA("TextLabel") and label:IsA("TextLabel") then
+                                                local boostText = amount.Text
+                                                local timeLeft = label.Text
 
-						-- Ignor text default
-						local defaultTimes = { "4:31:05", "0:00:00", "" }
-						local isDefault = false
-						for _, t in ipairs(defaultTimes) do
-							if timeLeft == t then
-								isDefault = true
-								break
-							end
-						end
+                                                -- Ignor text default
+                                                local defaultTimes = { "4:31:05", "0:00:00", "" }
+                                                local isDefault = false
+                                                for _, t in ipairs(defaultTimes) do
+                                                        if timeLeft == t then
+                                                                isDefault = true
+                                                                break
+                                                        end
+                                                end
 
-						if boostText:match("%%") and timeLeft:match("%d") and not isDefault then
-							if not luckNotificationSent then
-								luckNotificationSent = true
-								sendServerLuckEmbed(boostText, timeLeft)
-							end
-						end
-					end
-				end
-			end
-		end)
+                                                if boostText:match("%%") and timeLeft:match("%d") and not isDefault then
+                                                        if not luckNotificationSent then
+                                                                luckNotificationSent = true
+                                                                sendServerLuckEmbed(boostText, timeLeft)
+                                                        end
+                                                end
+                                        end
+                                end
+                        end
+                end)
 
-		if not success then
-			warn("Eroare verificare ServerLuck:", result)
-		end
+                if not success then
+                        warn("Eroare verificare ServerLuck:", result)
+                end
 
-		task.wait(5)
-	end
+                task.wait(5)
+        end
 end)
+
+local function autoChest()
+    local chests = {
+        {name = "Giant Chest", cooldown = 15 * 60, lastClaim = 0},
+        {name = "Void Chest",  cooldown = 40 * 60, lastClaim = 0},
+        {name = "Ticket Chest", cooldown = 30 * 60, lastClaim = 0},
+        {name = "Infinity Chest", cooldown = 30 * 60, lastClaim = 0},
+    }
+
+    print("🚀 AutoChest a pornit la:", os.date("%X"))
+
+    while true do
+        for _, chest in ipairs(chests) do
+            local now = os.time()
+            local timeSinceLast = now - chest.lastClaim
+
+            if timeSinceLast >= chest.cooldown then
+
+                remote:FireServer("ClaimChest", chest.name, true)
+                chest.lastClaim = now
+
+                local nextClaimTime = chest.lastClaim + chest.cooldown
+                print(string.format("✅ Claim trimis pentru %s la %s. Următorul claim va fi la %s", 
+                    chest.name, os.date("%X", now), os.date("%X", nextClaimTime)))
+            end
+
+            task.wait(5)
+        end
+
+        task.wait(1)
+    end
+end
+
+autoChest()
+
+local function autoPlaytimeReward()
+    local playtimeRemote = rs:WaitForChild("Shared")
+        :WaitForChild("Framework")
+        :WaitForChild("Network")
+        :WaitForChild("Remote")
+        :WaitForChild("RemoteFunction")
+
+    local AllRewards = {}
+
+    while true do
+        for i = 1, 9 do
+            local success, result = pcall(function()
+                return playtimeRemote:InvokeServer("ClaimPlaytime", i)
+            end)
+            if success then
+                AllRewards[i] = result
+            end
+        end
+        wait(300)
+    end
+end
+
+coroutine.wrap(autoPlaytimeReward)()
+
+local function autoClaimSeasonReward()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                                  :WaitForChild("Framework")
+                                  :WaitForChild("Network")
+                                  :WaitForChild("Remote")
+                                  :WaitForChild("RemoteEvent")
+
+    local function claim()
+        RemoteEvent:FireServer("ClaimSeason")
+    end
+
+    while true do
+        claim()
+        wait(5)
+    end
+end
+
+autoClaimSeasonReward()
 
 print("✅ Pet notifier & Server Luck activat pentru: " .. localPlayer.Name)
 
 task.spawn(function()
     local RiftWebhooks = {
-        ["bee-egg"] = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["super-chest"] = "https://discord.com/api/webhooks/1407847409450487829/G2T6NlRwrZecqXI4lxCp0VtT_1_bWn6CnENY2pUbj3rOW3n65MZE1_ZJ2lDsCPWcnKIG",
-        ["neon-egg"] = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["cyber-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["void-egg"]        = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["hell-egg"]        = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["crystal-egg"]     = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["royal-chest"]     = "https://discord.com/api/webhooks/1407847449594167306/sgv7c3PLn29bK1R4VCD4zLFyoijy0m3OSvRzcmB38cGyicfYLvKsp9nMUgjhiXQ6PjKp",
-        ["golden-chest"]    = "https://discord.com/api/webhooks/1407847526928744529/t2EFKD7KPttgcaiZVRzRjw4WO6w2NZUj_n1x_Y7c4bSc0BB1y5YxzBK75PwAPEmCnuXG",
-        ["nightmare-egg"]   = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["dice-rift"]       = "https://discord.com/api/webhooks/1407847452543025332/8wt1564_dILYw6Ncwpdf6qGm625JBYWObTXrAvg3G3no2FZdii3wI97U0k5tzThrkYbc",
-        ["mining-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["bubble-rift"]     = "https://discord.com/api/webhooks/1391374774734946374/JK3ertej6d3Dkcp2zhXbGLJpFXHC4RRhJNGs-3UPmsV_vm4-2m-V4mGzAClLB0jOk4_o",
-        ["spikey-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["magma-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["rainbow-egg"]     = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
-        ["lunar-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA"
+        ["brainrot-rift"]  = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["super-chest"]    = "https://discord.com/api/webhooks/1407847409450487829/G2T6NlRwrZecqXI4lxCp0VtT_1_bWn6CnENY2pUbj3rOW3n65MZE1_ZJ2lDsCPWcnKIG",
+        ["neon-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["cyber-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["void-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["hell-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["crystal-egg"]    = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["royal-chest"]    = "https://discord.com/api/webhooks/1407847449594167306/sgv7c3PLn29bK1R4VCD4zLFyoijy0m3OSvRzcmB38cGyicfYLvKsp9nMUgjhiXQ6PjKp",
+        ["golden-chest"]   = "https://discord.com/api/webhooks/1407847526928744529/t2EFKD7KPttgcaiZVRzRjw4WO6w2NZUj_n1x_Y7c4bSc0BB1y5YxzBK75PwAPEmCnuXG",
+        ["nightmare-egg"]  = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["dice-rift"]      = "https://discord.com/api/webhooks/1407847452543025332/8wt1564_dILYw6Ncwpdf6qGm625JBYWObTXrAvg3G3no2FZdii3wI97U0k5tzThrkYbc",
+        ["mining-egg"]     = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["bubble-rift"]    = "https://discord.com/api/webhooks/1391374774734946374/JK3ertej6d3Dkcp2zhXbGLJpFXHC4RRhJNGs-3UPmsV_vm4-2m-V4mGzAClLB0jOk4_o",
+        ["spikey-egg"]     = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["magma-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["rainbow-egg"]    = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["lunar-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA"
     }
 
     local RiftThumbnails = {
-        ["bee-egg"] = "https://cdn.discordapp.com/attachments/1392217302153429022/1396395263643353098/Update_13_-_Bee_Rift.png?ex=687dedee&is=687c9c6e&hm=4dd9e3656796054b7d02bcc82880e85f388fa3869b374ca5eb7c6bf334aeec3a&",
-        ["cyber-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748857860226/Cyber_Egg.png",
-        ["super-chest"] = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766161018921/Super_Chest.png?ex=6874bb15&is=68736995&hm=9ad0e179e0e4b0bb457af2f8ad0b3551622617aa89e14320b1fa068dfcca3f4d&",
-        ["neon-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766421332068/Neon_Egg.png?ex=6874bb15&is=68736995&hm=6e9e7a3b226c4184bda547f8008086398f78efe0addfe110e831745ab1185372&",
-        ["void-egg"]        = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359725650776265/Void_Egg.png",
-        ["hell-egg"]        = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359726020006080/Hell_Egg.png",
-        ["crystal-egg"]     = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359725025824899/Crystal_Egg.png",
-        ["royal-chest"]     = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359723872649317/Royal_Chest.png",
-        ["golden-chest"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359723578789938/Golden_Chest.png",
-        ["nightmare-egg"]   = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748207742986/Nightmare_Egg.png",
-        ["dice-rift"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359724149211266/Dice_Chest.png",
-        ["mining-egg"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748652335164/Mining_Egg.png",
-        ["bubble-rift"]     = "https://cdn.discordapp.com/attachments/1392217302153429022/1393360635596771478/Gum_Rift.png",
-        ["spikey-egg"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359724384223283/Spikey_Egg.png",
-        ["magma-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359724782686250/Magma_Egg.png",
-        ["rainbow-egg"]     = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748442886164/Rainbow_Egg.png",
-        ["lunar-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359725336461372/Lunar_Egg.png"
+        ["brainrot-rift"]  = "https://cdn.discordapp.com/attachments/1392217302153429022/1396395263643353098/Update_13_-_Bee_Rift.png",
+        ["cyber-egg"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748857860226/Cyber_Egg.png",
+        ["super-chest"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766161018921/Super_Chest.png",
+        ["neon-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766421332068/Neon_Egg.png",
+        ["void-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359725650776265/Void_Egg.png",
+        ["hell-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359726020006080/Hell_Egg.png",
+        ["crystal-egg"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359725025824899/Crystal_Egg.png",
+        ["royal-chest"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359723872649317/Royal_Chest.png",
+        ["golden-chest"]   = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359723578789938/Golden_Chest.png",
+        ["nightmare-egg"]  = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748207742986/Nightmare_Egg.png",
+        ["dice-rift"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359724149211266/Dice_Chest.png",
+        ["mining-egg"]     = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748652335164/Mining_Egg.png",
+        ["bubble-rift"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393360635596771478/Gum_Rift.png",
+        ["spikey-egg"]     = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359724384223283/Spikey_Egg.png",
+        ["magma-egg"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359724782686250/Magma_Egg.png",
+        ["rainbow-egg"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748442886164/Rainbow_Egg.png",
+        ["lunar-egg"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359725336461372/Lunar_Egg.png"
     }
 
     local alreadyNotified = {}
@@ -660,7 +738,15 @@ task.spawn(function()
                 local multiplier = getRiftMultiplier(rift)
 
                 local isChestRift = rift.Name == "golden-chest" or rift.Name == "royal-chest" or rift.Name == "dice-rift" or rift.Name == "super-chest"
-                if not isChestRift then
+                
+                -- verificare multiplier special
+                if rift.Name == "brainrot-rift" then
+                    if not multiplier or (multiplier ~= 5 and multiplier ~= 10 and multiplier ~= 25) then
+                        continue
+                    end
+                elseif rift.Name == "bubble-rift" then
+                    -- bubble-rift NU verifică multiplier
+                elseif not isChestRift then
                     if not multiplier or multiplier ~= 25 then
                         continue
                     end
@@ -684,11 +770,11 @@ task.spawn(function()
                 local thumbnail_url = RiftThumbnails[rift.Name] or ""
 
                 local riftInfo = {
-                    "**Server Info**",
+                    "**Server Info**",
                     "- **Players:** " .. tostring(player_count) .. "/12",
                     "- **Join Link:** [Click Here](" .. join_link .. ")",
                     "",
-                    "**Rift Info**"
+                    "**Rift Info**"
                 }
 
                 if multiplier then
@@ -700,10 +786,11 @@ task.spawn(function()
                 table.insert(riftInfo, "- **Height:** " .. height)
 
                 local embedData = {
+                    ["content"] = (rift.Name == "brainrot-rift") and "@everyone BRAINROT RIFT APPEARED! JOIN NOW!" or nil,
                     ["embeds"] = {{
                         ["title"] = formatTitle(rift.Name),
                         ["description"] = table.concat(riftInfo, "\n"),
-                        ["color"] = tonumber("2F3136", 16),
+                        ["color"] = (rift.Name == "brainrot-rift") and 0x00FF00 or tonumber("2F3136", 16),
                         ["author"] = {
                             ["name"] = "aerlrobos",
                             ["icon_url"] = "https://cdn.discordapp.com/attachments/1256255133545660511/1391365982353883266/1.png"
@@ -727,7 +814,7 @@ task.spawn(function()
                         })
                     end)
                 else
-                    warn("Executorul nu suport request-uri.")
+                    warn("Executorul nu suport request-uri.")
                 end
             end
         end
