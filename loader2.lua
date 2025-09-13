@@ -399,8 +399,8 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
             content = contentText,
             embeds = {{
                 author = {
-                    name = "Pet Notification",
-                    icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
+                    name = "OTC",
+                    icon_url = "https://cdn.discordapp.com/avatars/1295413269925728286/4d34f6512d892a8b4550174d766fd565.webp?size=2048"
                 },
                 title = titleText,
                 description = description,
@@ -529,7 +529,7 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
                 content = "",
                 embeds = {{
                         author = {
-                                name = "aerlrobos",
+                                name = "OTC",
                                 icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
                         },
                         title = "ServerLuck Found!",
@@ -792,7 +792,7 @@ task.spawn(function()
                         ["description"] = table.concat(riftInfo, "\n"),
                         ["color"] = (rift.Name == "brainrot-rift") and 0x00FF00 or tonumber("2F3136", 16),
                         ["author"] = {
-                            ["name"] = "aerlrobos",
+                            ["name"] = "OTC",
                             ["icon_url"] = "https://cdn.discordapp.com/attachments/1256255133545660511/1391365982353883266/1.png"
                         },
                         ["footer"] = { ["text"] = "Auto Rifts Notification" },
