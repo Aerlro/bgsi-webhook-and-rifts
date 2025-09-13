@@ -21,9 +21,71 @@ local HatchEvent = rs:WaitForChild("Shared")
     :WaitForChild("RemoteEvent")
 
 local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("PlayerDataChanged")
+local chestRemote = rs.Shared.Framework.Network.Remote.RemoteEvent
 local startTime = tick()
 local coins, gems, tickets, pearls = "N/A", "N/A", "N/A", "N/A"
 local totalHatches = 0
+
+local function autoChest()
+    local chests = {
+        {name = "Giant Chest",    cooldown = 15 * 60, lastClaim = 0},
+        {name = "Void Chest",     cooldown = 40 * 60, lastClaim = 0},
+        {name = "Ticket Chest",   cooldown = 30 * 60, lastClaim = 0},
+        {name = "Infinity Chest", cooldown = 30 * 60, lastClaim = 0},
+    }
+
+    while true do
+        for _, chest in ipairs(chests) do
+            local now = os.time()
+            if (now - chest.lastClaim) >= chest.cooldown then
+                chestRemote:FireServer("ClaimChest", chest.name, true)
+                chest.lastClaim = now
+            end
+            task.wait(5)
+        end
+        task.wait(1)
+    end
+end
+
+local function autoPlaytimeReward()
+    local playtimeRemote = rs:WaitForChild("Shared")
+        :WaitForChild("Framework")
+        :WaitForChild("Network")
+        :WaitForChild("Remote")
+        :WaitForChild("RemoteFunction")
+
+    local AllRewards = {}
+
+    while true do
+        for i = 1, 9 do
+            local success, result = pcall(function()
+                return playtimeRemote:InvokeServer("ClaimPlaytime", i)
+            end)
+            if success then
+                AllRewards[i] = result
+            end
+        end
+        task.wait(30)
+    end
+end
+
+local function autoClaimSeasonReward()
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
+                                  :WaitForChild("Framework")
+                                  :WaitForChild("Network")
+                                  :WaitForChild("Remote")
+                                  :WaitForChild("RemoteEvent")
+
+    local function claim()
+        RemoteEvent:FireServer("ClaimSeason")
+    end
+
+    while true do
+        claim()
+        task.wait(5)
+    end
+end
 
 local function getCurrencyAmount(currencyName)
         local success, result = pcall(function()
@@ -399,8 +461,8 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
             content = contentText,
             embeds = {{
                 author = {
-                    name = "OTC",
-                    icon_url = "https://cdn.discordapp.com/avatars/1295413269925728286/4d34f6512d892a8b4550174d766fd565.webp?size=2048"
+                    name = "Pet Notification",
+                    icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
                 },
                 title = titleText,
                 description = description,
@@ -529,7 +591,7 @@ local function sendServerLuckEmbed(boostPercent, rawTimeLeft)
                 content = "",
                 embeds = {{
                         author = {
-                                name = "OTC",
+                                name = "aerlrobos",
                                 icon_url = "https://cdn.discordapp.com/avatars/1129886888958885928/243a7d079a2b7340cb54f43c1b87bfd9.webp?size=2048"
                         },
                         title = "ServerLuck Found!",
@@ -590,84 +652,6 @@ task.spawn(function()
                 task.wait(5)
         end
 end)
-
-local function autoChest()
-    local chests = {
-        {name = "Giant Chest", cooldown = 15 * 60, lastClaim = 0},
-        {name = "Void Chest",  cooldown = 40 * 60, lastClaim = 0},
-        {name = "Ticket Chest", cooldown = 30 * 60, lastClaim = 0},
-        {name = "Infinity Chest", cooldown = 30 * 60, lastClaim = 0},
-    }
-
-    print("🚀 AutoChest a pornit la:", os.date("%X"))
-
-    while true do
-        for _, chest in ipairs(chests) do
-            local now = os.time()
-            local timeSinceLast = now - chest.lastClaim
-
-            if timeSinceLast >= chest.cooldown then
-
-                remote:FireServer("ClaimChest", chest.name, true)
-                chest.lastClaim = now
-
-                local nextClaimTime = chest.lastClaim + chest.cooldown
-                print(string.format("✅ Claim trimis pentru %s la %s. Următorul claim va fi la %s", 
-                    chest.name, os.date("%X", now), os.date("%X", nextClaimTime)))
-            end
-
-            task.wait(5)
-        end
-
-        task.wait(1)
-    end
-end
-
-autoChest()
-
-local function autoPlaytimeReward()
-    local playtimeRemote = rs:WaitForChild("Shared")
-        :WaitForChild("Framework")
-        :WaitForChild("Network")
-        :WaitForChild("Remote")
-        :WaitForChild("RemoteFunction")
-
-    local AllRewards = {}
-
-    while true do
-        for i = 1, 9 do
-            local success, result = pcall(function()
-                return playtimeRemote:InvokeServer("ClaimPlaytime", i)
-            end)
-            if success then
-                AllRewards[i] = result
-            end
-        end
-        wait(300)
-    end
-end
-
-coroutine.wrap(autoPlaytimeReward)()
-
-local function autoClaimSeasonReward()
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local RemoteEvent = ReplicatedStorage:WaitForChild("Shared")
-                                  :WaitForChild("Framework")
-                                  :WaitForChild("Network")
-                                  :WaitForChild("Remote")
-                                  :WaitForChild("RemoteEvent")
-
-    local function claim()
-        RemoteEvent:FireServer("ClaimSeason")
-    end
-
-    while true do
-        claim()
-        wait(5)
-    end
-end
-
-autoClaimSeasonReward()
 
 print("✅ Pet notifier & Server Luck activat pentru: " .. localPlayer.Name)
 
@@ -792,7 +776,7 @@ task.spawn(function()
                         ["description"] = table.concat(riftInfo, "\n"),
                         ["color"] = (rift.Name == "brainrot-rift") and 0x00FF00 or tonumber("2F3136", 16),
                         ["author"] = {
-                            ["name"] = "OTC",
+                            ["name"] = "aerlrobos",
                             ["icon_url"] = "https://cdn.discordapp.com/attachments/1256255133545660511/1391365982353883266/1.png"
                         },
                         ["footer"] = { ["text"] = "Auto Rifts Notification" },
@@ -823,3 +807,7 @@ task.spawn(function()
 end)
 
 print("✅ Rifts activat pentru: " .. localPlayer.Name)
+
+task.spawn(autoChest)
+task.spawn(autoPlaytimeReward)
+task.spawn(autoClaimSeasonReward)
