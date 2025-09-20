@@ -725,11 +725,9 @@ task.spawn(function()
                 
                 -- verificare multiplier special
                 if rift.Name == "brainrot-rift" then
-                    if not multiplier or (multiplier ~= 5 and multiplier ~= 10 and multiplier ~= 25) then
-                        continue
-                    end
+
                 elseif rift.Name == "bubble-rift" then
-                    -- bubble-rift NU verifică multiplier
+                
                 elseif not isChestRift then
                     if not multiplier or multiplier ~= 25 then
                         continue
