@@ -1,4 +1,4 @@
--- LocalScript
+-- LocalScript compatibil Delta Executor
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 
@@ -9,8 +9,8 @@ local remote = ReplicatedStorage:WaitForChild("Shared")
     :WaitForChild("Remote")
     :WaitForChild("RemoteEvent")
 
-local autoGrabEnabled = true
-local grabbedItems = {} -- pentru a nu trimite duplicate
+local autoGrabEnabled = false -- pornim dupa StartMinigame
+local grabbedItems = {}       -- pentru a nu trimite duplicate
 local savedFile = "RobotClaws.txt"
 
 -- funcție pentru grab
@@ -20,10 +20,10 @@ local function grabItem(id)
         grabbedItems[id] = true
         print("✅ Grab trimis pentru UUID:", id)
 
-        -- salvare în fișier
+        -- salvare în fișier Delta Executor
         local content = ""
-        if pcall(function() content = readfile(savedFile) end) == false then
-            content = "" -- dacă fișierul nu există
+        if isfile(savedFile) then
+            content = readfile(savedFile)
         end
         content = content .. id .. "\n"
         writefile(savedFile, content)
@@ -50,12 +50,18 @@ Workspace.DescendantAdded:Connect(function(obj)
     tryGrab(obj)
 end)
 
--- ascultă evenimentele serverului pentru a opri auto-grab
+-- ascultă evenimentele serverului
 remote.OnClientEvent:Connect(function(action, ...)
-    if action == "FinishMinigame" then
+    if action == "StartMinigame" then
+        print("⏳ StartMinigame detectat. Începem grab-ul în 3 secunde...")
+        task.delay(3, function()
+            autoGrabEnabled = true
+            print("🤖 Auto-Grab activ!")
+        end)
+    elseif action == "FinishMinigame" then
         autoGrabEnabled = false
         print("🛑 Minigame terminat. Auto-Grab oprit.")
     end
 end)
 
-print("🤖 Auto-Grab pentru Robot Claw activat! UUID-urile vor fi salvate în:", savedFile)
+print("✅ Script Auto-Grab Robot Claw încărcat! Delta Executor ready.")
