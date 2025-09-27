@@ -129,7 +129,11 @@ coroutine.wrap(function()
             local value = getCurrencyAmount("Pearls")
             if value then pearls = value end
         end
-        wait(10)
+        if leaves == "N/A" then
+            local value = getCurrencyAmount("Leaves")
+            if value then pearls = value end
+        end        
+        wait(5)
     end
 end)()
 
@@ -139,6 +143,7 @@ if remote then
         elseif name == "Gems" then gems = value
         elseif name == "Tickets" then tickets = value
         elseif name == "Pearls" then pearls = value
+        elseif name == "Leaves" then pearls = value
         elseif name == "EggsOpened" and typeof(value) == "table" then
             local count = 0
             for _, v in pairs(value) do
@@ -376,20 +381,29 @@ local function sendDiscordWebhook(playerName, petName, variant, boostedStats, dr
         ["Secret Bounty"] = 0xFF8800,
         ["Infinity"] = 0xFFFFFF
     }
-    local embedColor = colorMap[rarity] or colorMap[variant] or 65280
+    
+    local embedColor
+    if variant ~= "Normal" and colorMap[variant] then
+        embedColor = colorMap[variant]
+    else
+        embedColor = colorMap[rarity] or 65280
+    end
 
     local hatchCount = abbreviateNumber(totalHatches)
     local petImageLink = getPetImageLink(petName, variant)
 
     local petCurrencyLabel, petCurrencyValue = "", ""
     if boostedStats.Tickets then
-        petCurrencyLabel = "<:ticket:1392626567464747028> Tickets"
+        petCurrencyLabel = "<:ticket:1392626567464747028> **Tickets**"
         petCurrencyValue = tostring(boostedStats.Tickets)
     elseif boostedStats.Pearls then
-        petCurrencyLabel = "<:pearls:1403707150513213550> Pearls"
+        petCurrencyLabel = "<:pearls:1403707150513213550> **Pearls**"
         petCurrencyValue = tostring(boostedStats.Pearls)
+    elseif boostedStats.Leaves then
+        petCurrencyLabel = "<:leavess:1421417512347762700> **Leaves**"
+        petCurrencyValue = tostring(boostedStats.Leaves)
     else
-        petCurrencyLabel = "<:coins:1392626598188154977> Coins"
+        petCurrencyLabel = "<:coins:1392626598188154977> **Coins**"
         petCurrencyValue = tostring(boostedStats.Coins or "N/A")
     end
 
@@ -658,6 +672,7 @@ print("✅ Pet notifier & Server Luck activat pentru: " .. localPlayer.Name)
 task.spawn(function()
     local RiftWebhooks = {
         ["brainrot-rift"]  = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
+        ["dev-rift"]  = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
         ["super-chest"]    = "https://discord.com/api/webhooks/1407847409450487829/G2T6NlRwrZecqXI4lxCp0VtT_1_bWn6CnENY2pUbj3rOW3n65MZE1_ZJ2lDsCPWcnKIG",
         ["neon-egg"]       = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
         ["cyber-egg"]      = "https://discord.com/api/webhooks/1396399702282473554/Bl0wYsDFPB97EPqKeojXv5JsV2UYaMo_wGwgdo_rjpsQXAUTOHxf2Kzo1JGDZvzpGzFA",
@@ -677,7 +692,8 @@ task.spawn(function()
     }
 
     local RiftThumbnails = {
-        ["brainrot-rift"]  = "https://cdn.discordapp.com/attachments/1392217302153429022/1396395263643353098/Update_13_-_Bee_Rift.png",
+        ["brainrot-rift"]  = "https://cdn.discordapp.com/attachments/1392217302153429022/1421466463730008115/Brainrot_Rift.png?ex=68d9234e&is=68d7d1ce&hm=f74c4ab185fa982236fb13a220e83807d75ac1664a72e40f95f4139ea3d9ea38&",
+        ["dev-rift"]  = "https://cdn.discordapp.com/attachments/1392217302153429022/1421466463172300830/Developer_Egg.png?ex=68d9234e&is=68d7d1ce&hm=8731c105261beec13c6bab8716cac86852e6af6321fc18bd17c90502b9b8f1db&",
         ["cyber-egg"]      = "https://cdn.discordapp.com/attachments/1392217302153429022/1393359748857860226/Cyber_Egg.png",
         ["super-chest"]    = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766161018921/Super_Chest.png",
         ["neon-egg"]       = "https://cdn.discordapp.com/attachments/1392217302153429022/1393866766421332068/Neon_Egg.png",
@@ -724,7 +740,7 @@ task.spawn(function()
                 local isChestRift = rift.Name == "golden-chest" or rift.Name == "royal-chest" or rift.Name == "dice-rift" or rift.Name == "super-chest"
                 
                 -- verificare multiplier special
-                if rift.Name == "brainrot-rift" then
+                if rift.Name == "brainrot-rift" or rift.Name == "dev-rift" then
 
                 elseif rift.Name == "bubble-rift" then
                 
@@ -768,11 +784,11 @@ task.spawn(function()
                 table.insert(riftInfo, "- **Height:** " .. height)
 
                 local embedData = {
-                    ["content"] = (rift.Name == "brainrot-rift") and "@everyone BRAINROT RIFT APPEARED! JOIN NOW!" or nil,
+                    ["content"] = (rift.Name == "brainrot-rift") and "@everyone BRAINROT RIFT APPEARED! JOIN NOW!" or (rift.Name == "dev-rift" and "@everyone DEV RIFT APPEARED! JOIN NOW!") or nil,
                     ["embeds"] = {{
                         ["title"] = formatTitle(rift.Name),
                         ["description"] = table.concat(riftInfo, "\n"),
-                        ["color"] = (rift.Name == "brainrot-rift") and 0x00FF00 or tonumber("2F3136", 16),
+                        ["color"] = (rift.Name == "brainrot-rift" or rift.Name == "dev-rift") and 0x00FF00 or tonumber("2F3136", 16),
                         ["author"] = {
                             ["name"] = "aerlrobos",
                             ["icon_url"] = "https://cdn.discordapp.com/attachments/1256255133545660511/1391365982353883266/1.png"
