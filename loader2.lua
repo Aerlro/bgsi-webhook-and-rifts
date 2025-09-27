@@ -23,7 +23,7 @@ local HatchEvent = rs:WaitForChild("Shared")
 local remote = rs:FindFirstChild("Remotes") and rs.Remotes:FindFirstChild("PlayerDataChanged")
 local chestRemote = rs.Shared.Framework.Network.Remote.RemoteEvent
 local startTime = tick()
-local coins, gems, tickets, pearls = "N/A", "N/A", "N/A", "N/A"
+local coins, gems, tickets, pearls, leaves = "N/A", "N/A", "N/A", "N/A"
 local totalHatches = 0
 
 local function autoChest()
